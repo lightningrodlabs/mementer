@@ -1,0 +1,15 @@
+---
+manifest_version: "1"
+name: mementer
+description: ~
+roles:
+  - id: mementer
+    provisioning:
+      strategy: create
+      deferred: false
+    dna:
+      bundled: "../dnas/mementer/mementer.dna"
+      properties: ~
+      uuid: ~
+      version: ~
+      clone_limit: 0

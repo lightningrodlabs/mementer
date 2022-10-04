@@ -1,0 +1,18 @@
+---
+manifest_version: "1"
+name: mementer
+
+integrity:
+  uid: 00000000-0000-0000-0000-000000000001
+  properties: ~
+  origin_time: 2022-10-03T23:05:19.470323Z
+  zomes:
+    - name: mementer
+      bundled: ../../../../target/wasm32-unknown-unknown/release/mementer.wasm
+
+coordinator:
+  zomes:
+    - name: mementer
+      bundled: ../../../../target/wasm32-unknown-unknown/release/mementer.wasm
+      dependencies:
+        - name: mementer

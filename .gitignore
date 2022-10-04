@@ -1,0 +1,19 @@
+node_modules
+## editors
+/.idea
+.vscode
+.swp
+
+## system files
+.DS_Store
+
+target/
+node_modules/
+dist/
+.cargo/
+.hc*
+*.dna
+*.happ
+*.webhapp
+*.tsbuildinfo
+.running

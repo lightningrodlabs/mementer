@@ -7,12 +7,12 @@ integrity:
   properties: ~
   origin_time: 2022-10-03T23:05:19.470323Z
   zomes:
-    - name: mementer
-      bundled: ../../../../target/wasm32-unknown-unknown/release/mementer.wasm
+    - name: mementer_integrity
+      bundled: ../../../../target/wasm32-unknown-unknown/release/mementer_integrity.wasm
 
 coordinator:
   zomes:
     - name: mementer
       bundled: ../../../../target/wasm32-unknown-unknown/release/mementer.wasm
       dependencies:
-        - name: mementer
+        - name: mementer_integrity

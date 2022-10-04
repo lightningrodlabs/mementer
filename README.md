@@ -38,7 +38,7 @@ npm install
   npm run start
   ```
 
-2. Navigate to [localhost:5000](http://localhost:5000) in your browser. You should see the UI running.
+2. The UI see the UI running!
 
 
 ## Releasing (manual)

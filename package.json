@@ -6,10 +6,10 @@
     "apps/*/ui"
   ],
   "scripts": {
-    "start": "npm run build:happ && HC_ID=0 npm run start:agent",
+    "start": "npm run network 2",
+    "network": "hc s clean && npm run build:happ && concurrently-repeat \"npm run start:agent\"",
     "start:agent": "cross-env HC_PORT=$(port) ADMIN_PORT=$(port) concurrently \"npm run start:ui\" \"npm run start:happ\" \"sleep 5 && npm run start:ui:watch\"",
-    "start:ui": "npm run build:ui && npm run dev -w mementer-app",
-    "start:ui:watch": "npm run build:ui && npm run dev:watch -w mementer-app",
+    "start:ui": "npm run build -w @lightningrodlabs/mementer && concurrently \"npm run build:watch -w @lightningrodlabs/mementer\" \"npm run start -w mementer-app\"",
     "start:happ": "echo \"starting hc instance: $HC_ID\" && RUST_LOG=warn echo \"pass\" | hc s -f=$ADMIN_PORT --piped generate ./apps/launcher/workdir/mementer.happ --run=$HC_PORT -a mementer$HC_ID network mdns",
     "build:happ": "npm run build:dna && hc app pack ./apps/launcher/workdir",
     "build:dna": "npm run build:zome && hc dna pack ./apps/launcher/dnas/mementer",

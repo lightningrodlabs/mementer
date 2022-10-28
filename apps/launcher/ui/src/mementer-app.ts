@@ -41,8 +41,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
         this.loading = false
     }
 
-    findArc(size: sizes, focus: focusStates, start: number, end: number) {
-      const outerRadius = this.focusStateScales[focus][size] * this.circleSize / 2
+    findArc(size: sizes, start: number, end: number) {
+      const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
       const slice = Math.PI * 2 / this.numberOfSlices[size]
       return d3.arc().outerRadius(outerRadius).innerRadius(0).startAngle(start * slice).endAngle(end * slice)
     }
@@ -51,7 +51,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const group = d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
       group.selectAll('path').remove()
       for (let i = 0; i < this.numberOfSlices[size]; i += 1) {
-        const arc = this.findArc(size, this.focusState, i, i + 1)
+        const arc = this.findArc(size, i, i + 1)
         group
           .append('path')
           .attr('id', `${size}-arc-${i}`)
@@ -65,7 +65,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const t = this
       const group = t.shadowRoot?.getElementById(`${size}-circle-group`)
       d3.select(group!).selectAll('path').each(function (this: any, d, i: number) {
-        d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, t.focusState, i, i + 1))
+        d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, i, i + 1))
       })
     }
 
@@ -127,9 +127,10 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     
         return html`
           <div style="display: flex; flex-direction: 'column'; height: 100%; width: 100%; align-items: center;">
-            <div style="display: flex">
-              <div style="display: flex; align-items: center; margin-right: 10px">
-                <p style="margin: 0">Large circle slices</p>
+            <h1>The Mementer: The Chronogram of Life</h1>
+            <div style="display: flex; margin-bottom: 20px">
+              <div style="display: flex; align-items: center; margin-right: 20px">
+                <p style="margin: 0">Large slices</p>
                 <input
                   type='number'
                   .value=${this.numberOfSlices.large}
@@ -138,8 +139,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                   style="width: 50px; height: 30px; margin-left: 10px"
                 >
               </div>
-              <div style="display: flex; align-items: center; margin-right: 10px">
-                <p style="margin: 0">Medium circle slices</p>
+              <div style="display: flex; align-items: center; margin-right: 20px">
+                <p style="margin: 0">Medium slices</p>
                 <input
                   type='number'
                   .value=${this.numberOfSlices.medium}
@@ -149,7 +150,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                 >
               </div>
               <div style="display: flex; align-items: center">
-                <p style="margin: 0">Small circle slices</p>
+                <p style="margin: 0">Small slices</p>
                 <input
                   type='number'
                   .value=${this.numberOfSlices.small}

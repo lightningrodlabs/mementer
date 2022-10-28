@@ -12,108 +12,42 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     @state()
     loading = true
 
-    numberOfSlices = { small: 10, medium: 20, large: 30 }
+    svgSize = 700
 
-    focusStateRadiusSizes = {
-      default: { small: 50, medium: 75, large: 100 },
-      small: { small: 80, medium: 90, large: 100 },
-      medium: { small: 10, medium: 90, large: 100 },
-      large: { small: 10, medium: 20, large: 100 },
+    circleSize = 500
+
+    circleColors = { small: '#ddd', medium: '#ccc', large: '#bbb' }
+
+    focusStateScales = {
+      default: { small: 0.5, medium: 0.75, large: 1 },
+      small: { small: 0.8, medium: 0.9, large: 1 },
+      medium: { small: 0.1, medium: 0.9, large: 1 },
+      large: { small: 0.1, medium: 0.2, large: 1 },
     }
+
+    numberOfSlices = { small: 10, medium: 20, large: 30 }
 
     focusState: focusStates = 'default'
   
-  
     async connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
-        const adminWebsocket = await AdminWebsocket.connect(
-          `ws://localhost:${process.env.ADMIN_PORT}`
-        );   
-
-    
+        const adminWebsocket = await AdminWebsocket.connect(`ws://localhost:${process.env.ADMIN_PORT}`)
         const appWebsocket = await AppWebsocket.connect(url)
         const client = new HolochainClient(appWebsocket)
-    
-        const appInfo = await appWebsocket.appInfo({
-          installed_app_id: 'mementer',
-        })
-    
-        const installedCells = appInfo.cell_data;
-        const mementerCell = installedCells.find(
-          c => c.role_id === 'mementer'
-        ) as InstalledCell
-    
+        const appInfo = await appWebsocket.appInfo({ installed_app_id: 'mementer' })
+        const installedCells = appInfo.cell_data
+        const mementerCell = installedCells.find(c => c.role_id === 'mementer') as InstalledCell
         const cellClient = new CellClient(client, mementerCell)
-
         this.loading = false
     }
 
-    async firstUpdated() {
-        await this.connectToHolochain();
-    }
-
     findArc(size: sizes, focus: focusStates, start: number, end: number) {
-      const outerRadius = this.focusStateRadiusSizes[focus][size]
+      const outerRadius = this.focusStateScales[focus][size] * this.circleSize / 2
       const slice = Math.PI * 2 / this.numberOfSlices[size]
       return d3.arc().outerRadius(outerRadius).innerRadius(0).startAngle(start * slice).endAngle(end * slice)
     }
 
-    updated() {
-      // build the mementer
-      const t = this
-      const canvas = t.shadowRoot?.getElementById('canvas')
-      const svg = d3.select(canvas!).append('svg').attr('width', 500).attr('height', 500)
-
-      function transitionArcs(size: sizes) {
-        const group = t.shadowRoot?.getElementById(`${size}-circle-group`)
-        d3.select(group!).selectAll('path').each(function (this: any, d, i: number) {
-          d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, t.focusState, i, i + 1))
-        })
-      }
-
-      function updateFocusState(focus: focusStates) {
-        t.focusState = focus
-        transitionArcs('small')
-        transitionArcs('medium')
-        transitionArcs('large')
-      }
-
-      function createCircle(size: sizes) {
-        const circleGroup = svg
-          .append('g')
-          .attr('id', `${size}-circle-group`)
-          .attr('transform', 'translate(250,250)')
-          .style('cursor', 'pointer')
-          .on('mousedown', () => updateFocusState(size))
-
-        for (let i = 0; i < t.numberOfSlices[size]; i += 1) {
-          const arc = t.findArc(size, 'default', i, i + 1)
-          circleGroup
-            .append('path')
-            .attr('id', `${size}-arc-${i}`)
-            .attr('d', <any>arc)
-            .style('fill', '#ddd')
-            .style('stroke', 'black')
-            .style('strokeWidth', 5)
-        }
-      }
-
-      svg
-          .append('rect')
-          .attr('id', 'background')
-          .attr('width', 500)
-          .attr('height', 500)
-          .attr('fill', 'white')
-          .style('cursor', 'pointer')
-          .on('mousedown', () => updateFocusState('default'))
-
-      createCircle('large')
-      createCircle('medium')
-      createCircle('small')
-    }
-
-    updateSlices(size: sizes, slices: number) {
-      this.numberOfSlices[size] = slices
+    createSlices(size: sizes) {
       const group = d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
       group.selectAll('path').remove()
       for (let i = 0; i < this.numberOfSlices[size]; i += 1) {
@@ -122,11 +56,65 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .append('path')
           .attr('id', `${size}-arc-${i}`)
           .attr('d', <any>arc)
-          .style('fill', '#ddd')
+          .style('fill', this.circleColors[size])
           .style('stroke', 'black')
-          .style('strokeWidth', 5)
       }
     }
+
+    transitionCircleSize(size: sizes) {
+      const t = this
+      const group = t.shadowRoot?.getElementById(`${size}-circle-group`)
+      d3.select(group!).selectAll('path').each(function (this: any, d, i: number) {
+        d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, t.focusState, i, i + 1))
+      })
+    }
+
+    updateFocusState(focus: focusStates) {
+      this.focusState = focus
+      this.transitionCircleSize('small')
+      this.transitionCircleSize('medium')
+      this.transitionCircleSize('large')
+    }
+
+    createCircle(svg: any, size: sizes) {
+      svg
+        .append('g')
+        .attr('id', `${size}-circle-group`)
+        .attr('transform', `translate(${this.svgSize / 2}, ${this.svgSize / 2})`)
+        .style('cursor', 'pointer')
+        .on('mousedown', () => this.updateFocusState(size))
+
+      this.createSlices(size)
+    }
+
+    updateSlices(size: sizes, slices: number) {
+      this.numberOfSlices[size] = slices
+      this.createSlices(size)
+    }
+
+    async firstUpdated() { await this.connectToHolochain() }
+
+    updated() {
+      // create svg
+      const canvas = this.shadowRoot?.getElementById('canvas')
+      const svg = d3.select(canvas!).append('svg').attr('width', this.svgSize).attr('height', this.svgSize)
+
+      // create background
+      svg
+          .append('rect')
+          .attr('id', 'background')
+          .attr('width', this.svgSize)
+          .attr('height', this.svgSize)
+          .attr('fill', 'white')
+          .style('cursor', 'pointer')
+          .on('mousedown', () => this.updateFocusState('default'))
+  
+      // create circles
+      this.createCircle(svg, 'large')
+      this.createCircle(svg, 'medium')
+      this.createCircle(svg, 'small')
+    }
+
 
     render() {
         if (this.loading)

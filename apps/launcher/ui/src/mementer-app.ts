@@ -18,6 +18,10 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     circleColors = { small: '#ddd', medium: '#ccc', large: '#bbb' }
 
+    timerColors = { small: 'red', medium: 'green', large: 'blue' }
+
+    timerDurations = { small: 30, medium: 120, large: 360 } // seconds
+
     focusStateScales = {
       default: { small: 0.5, medium: 0.75, large: 1 },
       small: { small: 0.8, medium: 0.9, large: 1 },
@@ -87,6 +91,38 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       this.createSlices(size)
     }
 
+    loopTimer(timer: any, arc: any, duration: number) {
+      timer
+        .transition()
+        .ease(d3.easeLinear)
+        .duration(duration * 1000)
+        .attrTween('d', (d: any) => {
+          const interpolate = d3.interpolate(0, d.endAngle)
+          return (t: number) => {
+            d.endAngle = interpolate(t)
+            return <any>arc(d)
+          }
+        })
+        .on('end', this.loopTimer)
+    }
+
+    createTimer(svg: any, size: sizes) {
+      const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
+      const arc = d3.arc().outerRadius(outerRadius).innerRadius(0)
+      const timer = svg
+          .append('path')
+          .attr('id', `${size}-moving-arc`)
+          .datum({ startAngle: 0, endAngle: Math.PI * 2 })
+          .attr('d', <any>arc)
+          .attr('transform', `translate(${this.svgSize / 2}, ${this.svgSize / 2})`)
+          .attr('pointer-events', 'none')
+          .style('opacity', 0.3)
+          .style('fill', this.timerColors[size])
+          .style('stroke', 'black')
+
+      this.loopTimer(timer, arc, this.timerDurations[size])
+    }
+
     updateSlices(size: sizes, slices: number) {
       this.numberOfSlices[size] = slices
       this.createSlices(size)
@@ -109,10 +145,13 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .style('cursor', 'pointer')
           .on('mousedown', () => this.updateFocusState('default'))
   
-      // create circles
+      // create circle layers
       this.createCircle(svg, 'large')
+      this.createTimer(svg, 'large')
       this.createCircle(svg, 'medium')
+      this.createTimer(svg, 'medium')
       this.createCircle(svg, 'small')
+      this.createTimer(svg, 'small')
     }
 
 

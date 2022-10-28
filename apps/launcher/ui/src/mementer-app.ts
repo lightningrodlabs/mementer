@@ -10,35 +10,52 @@ type focusStates = 'default' | 'small' | 'medium' | 'large'
   
 export class MementerApp extends ScopedElementsMixin(LitElement) {
     @state()
-    _loading = true;
+    loading = true
+
+    numberOfSlices = { small: 10, medium: 20, large: 30 }
+
+    focusStateRadiusSizes = {
+      default: { small: 50, medium: 75, large: 100 },
+      small: { small: 80, medium: 90, large: 100 },
+      medium: { small: 10, medium: 90, large: 100 },
+      large: { small: 10, medium: 20, large: 100 },
+    }
+
+    focusState: focusStates = 'default'
   
   
     async connectToHolochain() {
-        const url = `ws://localhost:${process.env.HC_PORT}`;
+        const url = `ws://localhost:${process.env.HC_PORT}`
         const adminWebsocket = await AdminWebsocket.connect(
           `ws://localhost:${process.env.ADMIN_PORT}`
         );   
 
     
-        const appWebsocket = await AppWebsocket.connect(url);
-        const client = new HolochainClient(appWebsocket);
+        const appWebsocket = await AppWebsocket.connect(url)
+        const client = new HolochainClient(appWebsocket)
     
         const appInfo = await appWebsocket.appInfo({
           installed_app_id: 'mementer',
-        });
+        })
     
         const installedCells = appInfo.cell_data;
         const mementerCell = installedCells.find(
           c => c.role_id === 'mementer'
-        ) as InstalledCell;
+        ) as InstalledCell
     
-        const cellClient = new CellClient(client, mementerCell);
+        const cellClient = new CellClient(client, mementerCell)
 
-        this._loading = false;
+        this.loading = false
     }
 
     async firstUpdated() {
         await this.connectToHolochain();
+    }
+
+    findArc(size: sizes, focus: focusStates, start: number, end: number) {
+      const outerRadius = this.focusStateRadiusSizes[focus][size]
+      const slice = Math.PI * 2 / this.numberOfSlices[size]
+      return d3.arc().outerRadius(outerRadius).innerRadius(0).startAngle(start * slice).endAngle(end * slice)
     }
 
     updated() {
@@ -46,31 +63,19 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const t = this
       const canvas = t.shadowRoot?.getElementById('canvas')
       const svg = d3.select(canvas!).append('svg').attr('width', 500).attr('height', 500)
-      const numberOfSlices = { small: 10, medium: 20, large: 30 }
-      const focusStateRadiusSizes = {
-        default: { small: 50, medium: 75, large: 100 },
-        small: { small: 80, medium: 90, large: 100 },
-        medium: { small: 10, medium: 90, large: 100 },
-        large: { small: 10, medium: 20, large: 100 },
-      }
 
-      function findArc(size: sizes, focus: focusStates, start: number, end: number) {
-        const outerRadius = focusStateRadiusSizes[focus][size]
-        const slice = Math.PI * 2 / numberOfSlices[size]
-        return d3.arc().outerRadius(outerRadius).innerRadius(0).startAngle(start * slice).endAngle(end * slice)
-      }
-
-      function transitionArcs(size: sizes,focus: focusStates) {
+      function transitionArcs(size: sizes) {
         const group = t.shadowRoot?.getElementById(`${size}-circle-group`)
         d3.select(group!).selectAll('path').each(function (this: any, d, i: number) {
-          d3.select(this).transition().duration(1000).attr('d', <any>findArc(size, focus, i, i + 1))
+          d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, t.focusState, i, i + 1))
         })
       }
 
       function updateFocusState(focus: focusStates) {
-        transitionArcs('small', focus)
-        transitionArcs('medium', focus)
-        transitionArcs('large', focus)
+        t.focusState = focus
+        transitionArcs('small')
+        transitionArcs('medium')
+        transitionArcs('large')
       }
 
       function createCircle(size: sizes) {
@@ -81,8 +86,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .style('cursor', 'pointer')
           .on('mousedown', () => updateFocusState(size))
 
-        for (let i = 0; i < numberOfSlices[size]; i += 1) {
-          const arc = findArc(size, 'default', i, i + 1)
+        for (let i = 0; i < t.numberOfSlices[size]; i += 1) {
+          const arc = t.findArc(size, 'default', i, i + 1)
           circleGroup
             .append('path')
             .attr('id', `${size}-arc-${i}`)
@@ -107,8 +112,24 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       createCircle('small')
     }
 
+    updateSlices(size: sizes, slices: number) {
+      this.numberOfSlices[size] = slices
+      const group = d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
+      group.selectAll('path').remove()
+      for (let i = 0; i < this.numberOfSlices[size]; i += 1) {
+        const arc = this.findArc(size, this.focusState, i, i + 1)
+        group
+          .append('path')
+          .attr('id', `${size}-arc-${i}`)
+          .attr('d', <any>arc)
+          .style('fill', '#ddd')
+          .style('stroke', 'black')
+          .style('strokeWidth', 5)
+      }
+    }
+
     render() {
-        if (this._loading)
+        if (this.loading)
           return html`<div
             class="row"
             style="flex: 1; height: 100%; align-items: center; justify-content: center;"
@@ -116,7 +137,43 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
            Loading...
           </div>`;
     
-        return html`<div id='canvas' style="flex: 1; height: 100%; width: 100%; align-items: center; justify-content: center;"></div>`
+        return html`
+          <div style="display: flex; flex-direction: 'column'; height: 100%; width: 100%; align-items: center;">
+            <div style="display: flex">
+              <div style="display: flex; align-items: center; margin-right: 10px">
+                <p style="margin: 0">Large circle slices</p>
+                <input
+                  type='number'
+                  .value=${this.numberOfSlices.large}
+                  @keyup=${(e: any) => this.updateSlices('large', e.target.value)}
+                  @change=${(e: any) => this.updateSlices('large', e.target.value)}
+                  style="width: 50px; height: 30px; margin-left: 10px"
+                >
+              </div>
+              <div style="display: flex; align-items: center; margin-right: 10px">
+                <p style="margin: 0">Medium circle slices</p>
+                <input
+                  type='number'
+                  .value=${this.numberOfSlices.medium}
+                  @keyup=${(e: any) => this.updateSlices('medium', e.target.value)}
+                  @change=${(e: any) => this.updateSlices('medium', e.target.value)}
+                  style="width: 50px; height: 30px; margin-left: 10px"
+                >
+              </div>
+              <div style="display: flex; align-items: center">
+                <p style="margin: 0">Small circle slices</p>
+                <input
+                  type='number'
+                  .value=${this.numberOfSlices.small}
+                  @keyup=${(e: any) => this.updateSlices('small', e.target.value)}
+                  @change=${(e: any) => this.updateSlices('small', e.target.value)}
+                  style="width: 50px; height: 30px; margin-left: 10px"
+                >
+              </div>
+            </div>
+            <div id='canvas'></div>
+          </div>
+        `
     }
 
     static get scopedElements() {

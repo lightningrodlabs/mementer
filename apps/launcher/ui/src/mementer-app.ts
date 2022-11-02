@@ -22,7 +22,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     totalDuration = 6000 // seconds
 
-    numberOfSlices = { small: 10, medium: 20, large: 30 }
+    numberOfSlices = { small: 6, medium: 12, large: 24 }
 
     circleDurations = {
       small: this.totalDuration / this.numberOfSlices.large / this.numberOfSlices.medium,
@@ -84,7 +84,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const timer = t.shadowRoot?.getElementById(`${size}-timer`)
       const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
       const newArc = d3.arc().outerRadius(outerRadius).innerRadius(0)
-      d3.select(timer!).transition().duration(1000).attr('d', <any>newArc)
+      d3.select(timer!).transition('size').duration(1000).attr('d', <any>newArc)
     }
 
     updateFocusState(focus: focusStates) {
@@ -121,7 +121,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .style('opacity', 0.3)
           .style('fill', this.timerColors[size])
           .style('stroke', 'black')
-          .transition()
+          .transition('time')
           .ease(d3.easeLinear)
           .duration(this.circleDurations[size] * 1000)
           .attrTween('d', (d: any) => {
@@ -131,7 +131,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
               return <any>arc(d)
             }
           })
-          .on('end', () => { if (this.timerActive) this.createTimer(size, group) })
+          .on('end', () => this.createTimer(size, group))
     }
 
     updateSlices(size: sizes, slices: number) {
@@ -147,9 +147,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       if (this.timerActive) {
         // stop timer
         this.timerActive = false
-        d3.select(this.shadowRoot?.getElementById(`large-timer`)!).remove()
-        d3.select(this.shadowRoot?.getElementById(`medium-timer`)!).remove()
-        d3.select(this.shadowRoot?.getElementById(`small-timer`)!).remove()
+        d3.select(this.shadowRoot?.getElementById(`large-timer`)!).interrupt('time').remove()
+        d3.select(this.shadowRoot?.getElementById(`medium-timer`)!).interrupt('time').remove()
+        d3.select(this.shadowRoot?.getElementById(`small-timer`)!).interrupt('time').remove()
       } else {
         //start timer
         this.timerActive = true
@@ -202,7 +202,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             <h1>The Mementer: The Chronogram of Life</h1>
             <div style="display: flex; margin-bottom: 20px">
             <div style="display: flex; align-items: center; margin-right: 20px">
-                <p style="margin: 0">Total duration</p>
+                <p style="margin: 0">Total duration (seconds)</p>
                 <input
                   type='number'
                   .value=${this.totalDuration}

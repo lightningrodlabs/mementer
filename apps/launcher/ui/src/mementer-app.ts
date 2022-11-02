@@ -20,7 +20,15 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     timerColors = { small: 'red', medium: 'green', large: 'blue' }
 
-    timerDurations = { small: 30, medium: 120, large: 360 } // seconds
+    totalDuration = 6000 // seconds
+
+    numberOfSlices = { small: 10, medium: 20, large: 30 }
+
+    circleDurations = {
+      small: this.totalDuration / this.numberOfSlices.large / this.numberOfSlices.medium,
+      medium: this.totalDuration / this.numberOfSlices.large,
+      large: this.totalDuration
+    }
 
     focusStateScales = {
       default: { small: 0.5, medium: 0.75, large: 1 },
@@ -29,9 +37,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       large: { small: 0.1, medium: 0.2, large: 1 },
     }
 
-    numberOfSlices = { small: 10, medium: 20, large: 30 }
-
     focusState: focusStates = 'default'
+
+    timerActive: boolean = false
   
     async connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
@@ -67,10 +75,16 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     transitionCircleSize(size: sizes) {
       const t = this
+      // transition circle slices
       const group = t.shadowRoot?.getElementById(`${size}-circle-group`)
       d3.select(group!).selectAll('path').each(function (this: any, d, i: number) {
         d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, i, i + 1))
       })
+      // transition timer
+      const timer = t.shadowRoot?.getElementById(`${size}-timer`)
+      const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
+      const newArc = d3.arc().outerRadius(outerRadius).innerRadius(0)
+      d3.select(timer!).transition().duration(1000).attr('d', <any>newArc)
     }
 
     updateFocusState(focus: focusStates) {
@@ -91,41 +105,63 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       this.createSlices(size)
     }
 
-    loopTimer(timer: any, arc: any, duration: number) {
-      timer
-        .transition()
-        .ease(d3.easeLinear)
-        .duration(duration * 1000)
-        .attrTween('d', (d: any) => {
-          const interpolate = d3.interpolate(0, d.endAngle)
-          return (t: number) => {
-            d.endAngle = interpolate(t)
-            return <any>arc(d)
-          }
-        })
-        .on('end', this.loopTimer)
-    }
-
-    createTimer(svg: any, size: sizes) {
+    createTimer(size: sizes, circleGroup?: any) {
+      const group = circleGroup || d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
       const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
       const arc = d3.arc().outerRadius(outerRadius).innerRadius(0)
-      const timer = svg
+      // remove old timer path
+      group.select(`#${size}-timer`).remove()
+      // create new timer path
+      group
           .append('path')
-          .attr('id', `${size}-moving-arc`)
+          .attr('id', `${size}-timer`)
           .datum({ startAngle: 0, endAngle: Math.PI * 2 })
           .attr('d', <any>arc)
-          .attr('transform', `translate(${this.svgSize / 2}, ${this.svgSize / 2})`)
           .attr('pointer-events', 'none')
           .style('opacity', 0.3)
           .style('fill', this.timerColors[size])
           .style('stroke', 'black')
-
-      this.loopTimer(timer, arc, this.timerDurations[size])
+          .transition()
+          .ease(d3.easeLinear)
+          .duration(this.circleDurations[size] * 1000)
+          .attrTween('d', (d: any) => {
+            const interpolate = d3.interpolate(0, d.endAngle)
+            return (t: number) => {
+              d.endAngle = interpolate(t)
+              return <any>arc(d)
+            }
+          })
+          .on('end', () => { if (this.timerActive) this.createTimer(size, group) })
     }
 
     updateSlices(size: sizes, slices: number) {
-      this.numberOfSlices[size] = slices
+      this.numberOfSlices[size] = +slices
       this.createSlices(size)
+    }
+
+    updateTotalDuration(seconds: number) {
+      this.totalDuration = +seconds
+    }
+
+    toggleTimer() {
+      if (this.timerActive) {
+        // stop timer
+        this.timerActive = false
+        d3.select(this.shadowRoot?.getElementById(`large-timer`)!).remove()
+        d3.select(this.shadowRoot?.getElementById(`medium-timer`)!).remove()
+        d3.select(this.shadowRoot?.getElementById(`small-timer`)!).remove()
+      } else {
+        //start timer
+        this.timerActive = true
+        this.circleDurations = {
+          small: this.totalDuration / this.numberOfSlices.large / this.numberOfSlices.medium,
+          medium: this.totalDuration / this.numberOfSlices.large,
+          large: this.totalDuration
+        }
+        this.createTimer('small')
+        this.createTimer('medium')
+        this.createTimer('large')
+      }
     }
 
     async firstUpdated() { await this.connectToHolochain() }
@@ -147,11 +183,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
   
       // create circle layers
       this.createCircle(svg, 'large')
-      this.createTimer(svg, 'large')
       this.createCircle(svg, 'medium')
-      this.createTimer(svg, 'medium')
       this.createCircle(svg, 'small')
-      this.createTimer(svg, 'small')
     }
 
 
@@ -168,6 +201,16 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           <div style="display: flex; flex-direction: 'column'; height: 100%; width: 100%; align-items: center;">
             <h1>The Mementer: The Chronogram of Life</h1>
             <div style="display: flex; margin-bottom: 20px">
+            <div style="display: flex; align-items: center; margin-right: 20px">
+                <p style="margin: 0">Total duration</p>
+                <input
+                  type='number'
+                  .value=${this.totalDuration}
+                  @keyup=${(e: any) => this.updateTotalDuration(e.target.value)}
+                  @change=${(e: any) => this.updateTotalDuration(e.target.value)}
+                  style="width: 100px; height: 30px; margin-left: 10px"
+                >
+              </div>
               <div style="display: flex; align-items: center; margin-right: 20px">
                 <p style="margin: 0">Large slices</p>
                 <input
@@ -188,7 +231,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                   style="width: 50px; height: 30px; margin-left: 10px"
                 >
               </div>
-              <div style="display: flex; align-items: center">
+              <div style="display: flex; align-items: center; margin-right: 20px">
                 <p style="margin: 0">Small slices</p>
                 <input
                   type='number'
@@ -198,6 +241,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                   style="width: 50px; height: 30px; margin-left: 10px"
                 >
               </div>
+              <button
+                style="all: unset; background-color: #8bc8ff; padding: 0 10px; border-radius: 5px; cursor: pointer"
+                @click=${() => this.toggleTimer()}
+              >
+                Toggle timer
+              </button>
             </div>
             <div id='canvas'></div>
           </div>

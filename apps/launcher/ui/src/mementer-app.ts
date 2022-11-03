@@ -67,6 +67,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
         group
           .append('path')
           .attr('id', `${size}-arc-${i}`)
+          .classed('arc', true)
           .attr('d', <any>arc)
           .style('fill', this.circleColors[size])
           .style('stroke', 'black')
@@ -77,14 +78,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const t = this
       // transition circle slices
       const group = t.shadowRoot?.getElementById(`${size}-circle-group`)
-      d3.select(group!).selectAll('path').each(function (this: any, d, i: number) {
+      d3.select(group!).selectAll('.arc').each(function (this: any, d, i: number) {
         d3.select(this).transition().duration(1000).attr('d', <any>t.findArc(size, i, i + 1))
       })
       // transition timer
       const timer = t.shadowRoot?.getElementById(`${size}-timer`)
-      const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
-      const newArc = d3.arc().outerRadius(outerRadius).innerRadius(0)
-      d3.select(timer!).transition('size').duration(1000).attr('d', <any>newArc)
+      d3.select(timer!).transition('size').duration(1000).attr('transform', `scale(${this.focusStateScales[this.focusState][size] / 2})`)
     }
 
     updateFocusState(focus: focusStates) {
@@ -107,8 +106,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     createTimer(size: sizes, circleGroup?: any) {
       const group = circleGroup || d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
-      const outerRadius = this.focusStateScales[this.focusState][size] * this.circleSize / 2
-      const arc = d3.arc().outerRadius(outerRadius).innerRadius(0)
+      const arc = d3.arc().outerRadius(this.circleSize).innerRadius(0)
       // remove old timer path
       group.select(`#${size}-timer`).remove()
       // create new timer path
@@ -118,6 +116,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .datum({ startAngle: 0, endAngle: Math.PI * 2 })
           .attr('d', <any>arc)
           .attr('pointer-events', 'none')
+          .attr('transform', `scale(${this.focusStateScales[this.focusState][size] / 2})`)
           .style('opacity', 0.3)
           .style('fill', this.timerColors[size])
           .style('stroke', 'black')

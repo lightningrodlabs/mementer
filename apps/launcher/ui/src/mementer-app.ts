@@ -1,3 +1,4 @@
+/* eslint-disable func-names */
 import { LitElement, css, html } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client';
@@ -16,9 +17,29 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     circleSize = 500
 
-    circleColors = { large: '#bbb', medium: '#ccc', small: '#ddd' }
+    colors = {
+      grey1: '#888',
+      grey2: '#bbb',
+      grey3: '#ccc',
+      grey4: '#ddd',
+      buttonBlue: '#ff8b8b',
+      buttonRed: '#8bc8ff',
+      blue: 'blue',
+      green: 'green',
+      red: 'red'
+    }
 
-    timerColors = { large: 'blue', medium: 'green', small: 'red' }
+    circleColors = {
+      large: this.colors.grey2,
+      medium: this.colors.grey3,
+      small: this.colors.grey4
+    }
+
+    timerColors = {
+      large: this.colors.blue,
+      medium: this.colors.green,
+      small: this.colors.red
+    }
 
     totalDuration = 6000 // seconds
 
@@ -62,19 +83,25 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     }
 
     createSlices(size: sizes) {
-      const group = d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
+      const t = this
+      const group = d3.select(t.shadowRoot?.getElementById(`${size}-circle-group`)!)
       // remove old slices
       group.selectAll('path').remove()
       // create new slices
-      for (let i = 0; i < this.numberOfSlices[size]; i += 1) {
-        const arc = this.findArc(size, i, i + 1)
+      for (let i = 0; i < t.numberOfSlices[size]; i += 1) {
+        const arc = t.findArc(size, i, i + 1)
         group
           .append('path')
           .attr('id', `${size}-arc-${i}`)
           .classed('arc', true)
           .attr('d', <any>arc)
-          .style('fill', this.circleColors[size])
+          .style('fill', t.circleColors[size])
           .style('stroke', 'black')
+          .on('mouseover', function (this: any) { d3.select(this).transition('fill').duration(300).style('fill', t.colors.grey1) })
+          .on('mouseout', function (this: any) { d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size]) })
+          .on('mousedown', function (this: any) {
+            console.log('clicked: ', this.id)
+          })
       }
     }
 
@@ -140,7 +167,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const timerButton = this.shadowRoot?.getElementById('timer-button')
       this.timerActive = true
       timerButton!.textContent = 'Stop timer'
-      timerButton!.style.backgroundColor = '#ff8b8b'
+      timerButton!.style.backgroundColor = this.colors.buttonBlue
       this.sizesArray.forEach((size: sizes) => this.createTimer(size))
     }
 
@@ -148,7 +175,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const timerButton = this.shadowRoot?.getElementById('timer-button')
       this.timerActive = false
       timerButton!.textContent = 'Start timer'
-      timerButton!.style.backgroundColor = '#8bc8ff'
+      timerButton!.style.backgroundColor = this.colors.buttonRed
       this.sizesArray.forEach((size: sizes) => d3.select(this.shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove())
     }
 

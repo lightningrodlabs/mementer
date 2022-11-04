@@ -63,6 +63,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     timerActive: boolean = false
 
     sizesArray: sizes[] = ['large', 'medium', 'small']
+
+    selectedSlice: any = null
   
     async connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
@@ -98,9 +100,14 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .style('fill', t.circleColors[size])
           .style('stroke', 'black')
           .on('mouseover', function (this: any) { d3.select(this).transition('fill').duration(300).style('fill', t.colors.grey1) })
-          .on('mouseout', function (this: any) { d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size]) })
-          .on('mousedown', function (this: any) {
-            console.log('clicked: ', this.id)
+          .on('mouseout', function (this: any) {
+            const selected = t.selectedSlice && t.selectedSlice.size === size && t.selectedSlice.index === i
+            if (!selected) d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size])
+          })
+          .on('mousedown', () => {
+            const previousSelection = t.selectedSlice && t.shadowRoot?.getElementById(`${t.selectedSlice.size}-arc-${t.selectedSlice.index}`)
+            if (previousSelection) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
+            t.selectedSlice = { size, index: i }
           })
       }
     }

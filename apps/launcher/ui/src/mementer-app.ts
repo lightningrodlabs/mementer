@@ -105,8 +105,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             if (!selected) d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size])
           })
           .on('mousedown', () => {
+            const isCurrentSelection = t.selectedSlice && t.selectedSlice.size === size && t.selectedSlice.index === i
             const previousSelection = t.selectedSlice && t.shadowRoot?.getElementById(`${t.selectedSlice.size}-arc-${t.selectedSlice.index}`)
-            if (previousSelection) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
+            if (!isCurrentSelection && previousSelection) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
             t.selectedSlice = { size, index: i }
           })
       }

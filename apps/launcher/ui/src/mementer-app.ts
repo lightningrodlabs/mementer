@@ -62,9 +62,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     timerActive: boolean = false
 
-    sizesArray: sizes[] = ['large', 'medium', 'small']
-
     selectedSlice: any = null
+
+    sizesArray: sizes[] = ['large', 'medium', 'small']
   
     async connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
@@ -211,14 +211,14 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     updateSlices(size: sizes, slices: number) {
       this.stopTimer()
-      this.numberOfSlices[size] = +slices
+      this.numberOfSlices[size] = +slices < 1 ? 1 : +slices
       this.updateCircleDurations()
       this.createSlices(size)
     }
 
     updateTotalDuration(seconds: number) {
       this.stopTimer()
-      this.totalDuration = +seconds
+      this.totalDuration = +seconds < 1 ? 1 : +seconds
       this.updateCircleDurations()
     }
 
@@ -258,6 +258,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             <p style="margin: 0">Total duration (seconds)</p>
             <input
               type='number'
+              min='1'
               .value=${this.totalDuration}
               @keyup=${(e: any) => this.updateTotalDuration(e.target.value)}
               @change=${(e: any) => this.updateTotalDuration(e.target.value)}
@@ -265,11 +266,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             >
           </div>
 
-          <div style="display: flex; margin-bottom: 20px">
-            <div style="display: flex; align-items: center; margin-right: 20px">
+          <div style="display: flex; margin-bottom: 20px; width: 1200px;">
+            <div style="display: flex; align-items: center; width: 400px">
               <p style="margin: 0 10px 0 0">Large slices</p>
               <input
                 type='number'
+                min='1'
                 .value=${this.numberOfSlices.large}
                 @keyup=${(e: any) => this.updateSlices('large', e.target.value)}
                 @change=${(e: any) => this.updateSlices('large', e.target.value)}
@@ -279,10 +281,11 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                 ${this.findCircleDurationText('large')}
               </p>
             </div>
-            <div style="display: flex; align-items: center; margin-right: 20px">
+            <div style="display: flex; align-items: center; width: 400px">
               <p style="margin: 0 10px 0 0">Medium slices</p>
               <input
                 type='number'
+                min='1'
                 .value=${this.numberOfSlices.medium}
                 @keyup=${(e: any) => this.updateSlices('medium', e.target.value)}
                 @change=${(e: any) => this.updateSlices('medium', e.target.value)}
@@ -292,10 +295,11 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                 ${this.findCircleDurationText('medium')}
               </p>
             </div>
-            <div style="display: flex; align-items: center">
+            <div style="display: flex; align-items: center; width: 400px">
               <p style="margin: 0 10px 0 0">Small slices</p>
               <input
                 type='number'
+                min='1'
                 .value=${this.numberOfSlices.small}
                 @keyup=${(e: any) => this.updateSlices('small', e.target.value)}
                 @change=${(e: any) => this.updateSlices('small', e.target.value)}

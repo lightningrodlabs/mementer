@@ -143,15 +143,18 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     }
 
     toggleTimer() {
+      const timerButton = this.shadowRoot?.getElementById('timer-button')
       if (this.timerActive) {
         // stop timer
         this.timerActive = false
+        timerButton!.textContent = 'Start timer'
         d3.select(this.shadowRoot?.getElementById(`large-timer`)!).interrupt('time').remove()
         d3.select(this.shadowRoot?.getElementById(`medium-timer`)!).interrupt('time').remove()
         d3.select(this.shadowRoot?.getElementById(`small-timer`)!).interrupt('time').remove()
       } else {
         //start timer
         this.timerActive = true
+        timerButton!.textContent = 'Stop timer'
         this.circleDurations = {
           small: this.totalDuration / this.numberOfSlices.large / this.numberOfSlices.medium,
           medium: this.totalDuration / this.numberOfSlices.large,
@@ -241,10 +244,11 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
                 >
               </div>
               <button
+                id='timer-button'
                 style="all: unset; background-color: #8bc8ff; padding: 0 10px; border-radius: 5px; cursor: pointer"
                 @click=${() => this.toggleTimer()}
               >
-                Toggle timer
+                Start timer
               </button>
             </div>
             <div id='canvas'></div>

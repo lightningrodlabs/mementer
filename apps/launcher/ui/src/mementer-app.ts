@@ -25,6 +25,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       blue1: '#0068e8',
       blue2: '#4e92e6',
       blue3: '#84aee3',
+      green: 'green',
       buttonBlue: '#ff8b8b',
       buttonRed: '#8bc8ff'
     }
@@ -107,23 +108,28 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .attr('d', <any>arc)
           .style('fill', t.circleColors[size])
           .style('stroke', 'black')
-          .on('mouseover', function (this: any) { d3.select(this).transition('fill').duration(300).style('fill', t.colors.grey1) })
+          .on('mouseover', function (this: any) {
+            const hasContent = t.sliceData[size][i].length
+            if (!hasContent) d3.select(this).transition('fill').duration(300).style('fill', t.colors.grey1)
+          })
           .on('mouseout', function (this: any) {
             const selected = t.selectedSlice && t.selectedSlice.size === size && t.selectedSlice.index === i
-            if (!selected) d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size])
+            const hasContent = t.sliceData[size][i].length
+            if (!selected && !hasContent) d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size])
           })
           .on('mousedown', () => {
             // deselect previous selection
             const isCurrentSelection = t.selectedSlice && t.selectedSlice.size === size && t.selectedSlice.index === i
             const previousSelection = t.selectedSlice && t.shadowRoot?.getElementById(`${t.selectedSlice.size}-arc-${t.selectedSlice.index}`)
-            if (!isCurrentSelection && previousSelection) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
+            const hasContent = t.selectedSlice && t.sliceData[t.selectedSlice.size][t.selectedSlice.index].length
+            if (previousSelection && !isCurrentSelection && !hasContent) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
             // add new selection
             t.selectedSlice = { size, index: i }
             const sliceDetails = t.shadowRoot?.getElementById('selected-slice-details')
-            const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
+            const sliceText = t.shadowRoot?.getElementById('selected-slice-text')
             const sliceInput = t.shadowRoot?.getElementById('selected-slice-input')
             sliceDetails!.textContent = `Selected slice: ${size} ${i + 1} / ${t.numberOfSlices[size]}`
-            sliceText!.textContent = this.sliceData[size][i] || 'empty'
+            sliceText!.textContent = t.sliceData[size][i] || 'empty'
             sliceInput!.style.display = 'flex'
           })
         // create slice data
@@ -150,7 +156,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
         // deselect selected slice if present
         const currentSelection = this.selectedSlice && this.shadowRoot?.getElementById(`${this.selectedSlice.size}-arc-${this.selectedSlice.index}`)
         if (currentSelection) {
-          d3.select(currentSelection).transition('fill').duration(300).style('fill', this.circleColors[this.selectedSlice.size as sizes])
+          const hasContent = this.sliceData[this.selectedSlice.size][this.selectedSlice.index].length
+          if (!hasContent) d3.select(currentSelection).transition('fill').duration(300).style('fill', this.circleColors[this.selectedSlice.size as sizes])
           this.selectedSlice = null
           const sliceDetails = this.shadowRoot?.getElementById('selected-slice-details')
           const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
@@ -260,8 +267,10 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     saveSliceText() {
       this.sliceData[this.selectedSlice.size][this.selectedSlice.index] = this.newSliceText
+      const slice = this.shadowRoot?.getElementById(`${this.selectedSlice.size}-arc-${this.selectedSlice.index}`)
       const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
       sliceText!.textContent = this.newSliceText
+      d3.select(slice!).transition('fill').duration(300).style('fill', this.colors.green)
     }
 
     async firstUpdated() { await this.connectToHolochain() }

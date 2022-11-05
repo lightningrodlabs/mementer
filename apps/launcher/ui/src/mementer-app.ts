@@ -128,6 +128,14 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     updateFocusState(focus: focusStates) {
       this.focusState = focus
       this.sizesArray.forEach((size: sizes) => this.transitionCircleSize(size))
+      if (focus === 'default') {
+        // deselect selected slice if present
+        const currentSelection = this.selectedSlice && this.shadowRoot?.getElementById(`${this.selectedSlice.size}-arc-${this.selectedSlice.index}`)
+        if (currentSelection) {
+          d3.select(currentSelection).transition('fill').duration(300).style('fill', this.circleColors[this.selectedSlice.size as sizes])
+          this.selectedSlice = null
+        }
+      }
     }
 
     createCircle(svg: any, size: sizes) {

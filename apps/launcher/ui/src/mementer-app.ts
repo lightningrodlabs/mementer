@@ -105,10 +105,16 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             if (!selected) d3.select(this).transition('fill').duration(300).style('fill', t.circleColors[size])
           })
           .on('mousedown', () => {
+            // deselect previous selection
             const isCurrentSelection = t.selectedSlice && t.selectedSlice.size === size && t.selectedSlice.index === i
             const previousSelection = t.selectedSlice && t.shadowRoot?.getElementById(`${t.selectedSlice.size}-arc-${t.selectedSlice.index}`)
             if (!isCurrentSelection && previousSelection) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
+            // add new selection
             t.selectedSlice = { size, index: i }
+            const circleText = t.shadowRoot?.getElementById('selected-circle-text')
+            const sliceText = t.shadowRoot?.getElementById('selected-slice-text')
+            circleText!.textContent = `Selected circle: ${size}`
+            sliceText!.textContent = `Selected slice: ${i + 1} / ${t.numberOfSlices[size]}`
           })
       }
     }
@@ -134,6 +140,10 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
         if (currentSelection) {
           d3.select(currentSelection).transition('fill').duration(300).style('fill', this.circleColors[this.selectedSlice.size as sizes])
           this.selectedSlice = null
+          const circleText = this.shadowRoot?.getElementById('selected-circle-text')
+          const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
+          circleText!.textContent = ''
+          sliceText!.textContent = ''
         }
       }
     }
@@ -328,7 +338,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             Start timer
           </button>
           
-          <div id='canvas'></div>
+          <div style='margin-bottom: 20px' id='canvas'></div>
+
+          <div style='display: flex; flex-direction: column; align-items: center'>
+            <p id='selected-circle-text' style='margin: 0 0 20px 0'></p>
+            <p id='selected-slice-text' style='margin: 0 0 20px 0'></p>
+          </div>
         </div>
       `
     }

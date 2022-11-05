@@ -25,7 +25,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       blue1: '#0068e8',
       blue2: '#4e92e6',
       blue3: '#84aee3',
-      green: 'green',
+      green1: '#a8ed64',
+      green2: '#8cd446',
       buttonBlue: '#ff8b8b',
       buttonRed: '#8bc8ff'
     }
@@ -127,10 +128,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             t.selectedSlice = { size, index: i }
             const sliceDetails = t.shadowRoot?.getElementById('selected-slice-details')
             const sliceText = t.shadowRoot?.getElementById('selected-slice-text')
-            const sliceInput = t.shadowRoot?.getElementById('selected-slice-input')
+            const sliceInputWrapper = t.shadowRoot?.getElementById('selected-slice-input-wrapper')
+            const sliceInput = t.shadowRoot?.getElementById('selected-slice-input') as HTMLInputElement
             sliceDetails!.textContent = `Selected slice: ${size} ${i + 1} / ${t.numberOfSlices[size]}`
             sliceText!.textContent = t.sliceData[size][i] || 'empty'
-            sliceInput!.style.display = 'flex'
+            sliceInputWrapper!.style.display = 'flex'
+            sliceInput!.value = t.sliceData[size][i]
           })
         // create slice data
         this.sliceData[size][i] = ''
@@ -161,10 +164,10 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           this.selectedSlice = null
           const sliceDetails = this.shadowRoot?.getElementById('selected-slice-details')
           const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
-          const sliceInput = this.shadowRoot?.getElementById('selected-slice-input')
+          const sliceInputWrapper = this.shadowRoot?.getElementById('selected-slice-input-wrapper')
           sliceDetails!.textContent = ''
           sliceText!.textContent = ''
-          sliceInput!.style.display = 'none'
+          sliceInputWrapper!.style.display = 'none'
         }
       }
     }
@@ -270,7 +273,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       const slice = this.shadowRoot?.getElementById(`${this.selectedSlice.size}-arc-${this.selectedSlice.index}`)
       const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
       sliceText!.textContent = this.newSliceText
-      d3.select(slice!).transition('fill').duration(300).style('fill', this.colors.green)
+      d3.select(slice!).transition('fill').duration(300).style('fill', this.colors.green1)
     }
 
     async firstUpdated() { await this.connectToHolochain() }
@@ -375,8 +378,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           <div style='display: flex; flex-direction: column; align-items: center'>
             <p id='selected-slice-details' style='margin: 0 0 20px 0'></p>
             <p id='selected-slice-text' style='margin: 0 0 20px 0'></p>
-            <div id='selected-slice-input' style='display: none; align-items: center'>
+            <div id='selected-slice-input-wrapper' style='display: none; align-items: center'>
               <input
+                id='selected-slice-input'
                 type='text'
                 .value=${this.newSliceText}
                 @keyup=${(e: any) => this.updateSliceText(e.target.value)}

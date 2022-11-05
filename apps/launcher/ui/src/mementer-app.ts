@@ -22,11 +22,11 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       grey2: '#bbb',
       grey3: '#ccc',
       grey4: '#ddd',
+      blue1: '#0068e8',
+      blue2: '#4e92e6',
+      blue3: '#84aee3',
       buttonBlue: '#ff8b8b',
-      buttonRed: '#8bc8ff',
-      blue: 'blue',
-      green: 'green',
-      red: 'red'
+      buttonRed: '#8bc8ff'
     }
 
     circleColors = {
@@ -36,9 +36,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     }
 
     timerColors = {
-      large: this.colors.blue,
-      medium: this.colors.green,
-      small: this.colors.red
+      large: this.colors.blue1,
+      medium: this.colors.blue2,
+      small: this.colors.blue3
     }
 
     totalDuration = 6000 // seconds
@@ -63,6 +63,14 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     timerActive: boolean = false
 
     selectedSlice: any = null
+
+    newSliceText: string = ''
+
+    sliceData: any = {
+      large: [],
+      medium: [],
+      small: [],
+    }
 
     sizesArray: sizes[] = ['large', 'medium', 'small']
   
@@ -111,11 +119,15 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             if (!isCurrentSelection && previousSelection) d3.select(previousSelection).transition('fill').duration(300).style('fill', t.circleColors[t.selectedSlice.size as sizes])
             // add new selection
             t.selectedSlice = { size, index: i }
-            const circleText = t.shadowRoot?.getElementById('selected-circle-text')
-            const sliceText = t.shadowRoot?.getElementById('selected-slice-text')
-            circleText!.textContent = `Selected circle: ${size}`
-            sliceText!.textContent = `Selected slice: ${i + 1} / ${t.numberOfSlices[size]}`
+            const sliceDetails = t.shadowRoot?.getElementById('selected-slice-details')
+            const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
+            const sliceInput = t.shadowRoot?.getElementById('selected-slice-input')
+            sliceDetails!.textContent = `Selected slice: ${size} ${i + 1} / ${t.numberOfSlices[size]}`
+            sliceText!.textContent = this.sliceData[size][i] || 'empty'
+            sliceInput!.style.display = 'flex'
           })
+        // create slice data
+        this.sliceData[size][i] = ''
       }
     }
 
@@ -140,10 +152,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
         if (currentSelection) {
           d3.select(currentSelection).transition('fill').duration(300).style('fill', this.circleColors[this.selectedSlice.size as sizes])
           this.selectedSlice = null
-          const circleText = this.shadowRoot?.getElementById('selected-circle-text')
+          const sliceDetails = this.shadowRoot?.getElementById('selected-slice-details')
           const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
-          circleText!.textContent = ''
+          const sliceInput = this.shadowRoot?.getElementById('selected-slice-input')
+          sliceDetails!.textContent = ''
           sliceText!.textContent = ''
+          sliceInput!.style.display = 'none'
         }
       }
     }
@@ -173,9 +187,8 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .attr('d', <any>arc)
           .attr('pointer-events', 'none')
           .attr('transform', `scale(${this.focusStateScales[this.focusState][size] / 2})`)
-          .style('opacity', 0.3)
+          .style('opacity', 0.5)
           .style('fill', this.timerColors[size])
-          .style('stroke', 'black')
           .transition('time')
           .ease(d3.easeLinear)
           .duration(this.circleDurations[size] * 1000)
@@ -239,6 +252,16 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
       this.stopTimer()
       this.totalDuration = +seconds < 1 ? 1 : +seconds
       this.updateCircleDurations()
+    }
+
+    updateSliceText(text: string) {
+      this.newSliceText = text
+    }
+
+    saveSliceText() {
+      this.sliceData[this.selectedSlice.size][this.selectedSlice.index] = this.newSliceText
+      const sliceText = this.shadowRoot?.getElementById('selected-slice-text')
+      sliceText!.textContent = this.newSliceText
     }
 
     async firstUpdated() { await this.connectToHolochain() }
@@ -341,8 +364,24 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           <div style='margin-bottom: 20px' id='canvas'></div>
 
           <div style='display: flex; flex-direction: column; align-items: center'>
-            <p id='selected-circle-text' style='margin: 0 0 20px 0'></p>
+            <p id='selected-slice-details' style='margin: 0 0 20px 0'></p>
             <p id='selected-slice-text' style='margin: 0 0 20px 0'></p>
+            <div id='selected-slice-input' style='display: none; align-items: center'>
+              <input
+                type='text'
+                .value=${this.newSliceText}
+                @keyup=${(e: any) => this.updateSliceText(e.target.value)}
+                @change=${(e: any) => this.updateSliceText(e.target.value)}
+                style='width: 500px; height: 30px; margin-right: 20px'
+              />
+              <button
+                id='timer-button'
+                @click=${() => this.saveSliceText()}
+                style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer"
+              >
+                Save text
+              </button>
+            </div>
           </div>
         </div>
       `

@@ -127,8 +127,10 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
             // add new selection
             t.selectedSlice = { size, index: i }
             const sliceDetails = t.shadowRoot?.getElementById('selected-slice-details')
+            const sliceInputWrapper = t.shadowRoot?.getElementById('selected-slice-input-wrapper')
             const sliceInput = t.shadowRoot?.getElementById('selected-slice-input') as HTMLInputElement
             sliceDetails!.textContent = `Selected slice: ${size} ${i + 1} / ${t.numberOfSlices[size]}`
+            sliceInputWrapper!.style.display = 'flex'
             sliceInput!.value = t.sliceData[size][i]
           })
         // create slice data
@@ -159,7 +161,9 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           if (!hasContent) d3.select(currentSelection).transition('fill').duration(300).style('fill', this.circleColors[this.selectedSlice.size as sizes])
           this.selectedSlice = null
           const sliceDetails = this.shadowRoot?.getElementById('selected-slice-details')
+          const sliceInputWrapper = this.shadowRoot?.getElementById('selected-slice-input-wrapper')
           sliceDetails!.textContent = 'No slice selected'
+          sliceInputWrapper!.style.display = 'none'
         }
       }
     }
@@ -366,23 +370,24 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           <div style='display: flex; align-items: center'>
             <div style='margin-bottom: 20px' id='canvas'></div>
 
-            <div style='width: 300px; height: 100%; display: flex; flex-direction: column; margin-left: 20px;'>
+            <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
               <p id='selected-slice-details' style='margin: 0 0 20px 0'>No slice selected</p>
-              <textarea
-                id='selected-slice-input'
-                rows='15'
-                .value=${this.newSliceText}
-                @keyup=${(e: any) => this.updateSliceText(e.target.value)}
-                @change=${(e: any) => this.updateSliceText(e.target.value)}
-                style='all: unset; width: 280px; border: 2px solid ${this.colors.grey1}; border-radius: 5px; background-color: white; padding: 10px'
-              ></textarea>
-              <button
-                id='timer-button'
-                @click=${() => this.saveSliceText()}
-                style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: 80px"
-              >
-                Save text
-              </button>
+              <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
+                <textarea
+                  id='selected-slice-input'
+                  rows='14'
+                  .value=${this.newSliceText}
+                  @keyup=${(e: any) => this.updateSliceText(e.target.value)}
+                  @change=${(e: any) => this.updateSliceText(e.target.value)}
+                  style='all: unset; width: 280px; border: 2px solid ${this.colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
+                ></textarea>
+                <button
+                  @click=${() => this.saveSliceText()}
+                  style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: 80px"
+                >
+                  Save text
+                </button>
+              </div>
             </div>
           </div>
           

@@ -183,6 +183,18 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
     createTimer(size: sizes, circleGroup?: any) {
       const group = circleGroup || d3.select(this.shadowRoot?.getElementById(`${size}-circle-group`)!)
       const arc = d3.arc().outerRadius(this.circleSize).innerRadius(0)
+      // set up timers
+      const totalDuration = this.circleDurations[size] * 1000
+      const sliceDuration = totalDuration / this.numberOfSlices[size]
+      const text = this.shadowRoot?.getElementById(`${size}-circle-slice-text`)
+      let sliceIndex = 1
+      text!.textContent = `${size} slice: ${sliceIndex}`
+      const timer = setInterval(() => {
+        sliceIndex += 1
+        if (sliceIndex <= this.numberOfSlices[size]) {
+          text!.textContent = `${size} slice: ${sliceIndex}`
+        } else clearInterval(timer)
+      }, sliceDuration)
       // remove old path
       group.select(`#${size}-timer`).remove()
       // create new path
@@ -197,7 +209,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           .style('fill', this.timerColors[size])
           .transition('time')
           .ease(d3.easeLinear)
-          .duration(this.circleDurations[size] * 1000)
+          .duration(totalDuration)
           .attrTween('d', (d: any) => {
             const interpolate = d3.interpolate(0, d.endAngle)
             return (t: number) => {
@@ -366,6 +378,12 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
           >
             Start timer
           </button>
+
+          <div style="display: flex; margin-bottom: 20px">
+            <p id='large-circle-slice-text' style="margin-right: 20px">large slice: 0</p>
+            <p id='medium-circle-slice-text' style="margin-right: 20px">medium slice: 0</p>
+            <p id='small-circle-slice-text'>small slice: 0</p>
+          </div>
           
           <div style='display: flex; align-items: center'>
             <div style='margin-bottom: 20px' id='canvas'></div>

@@ -23,6 +23,7 @@
     "@open-wc/scoped-elements": "^2.0.1",
     "@webcomponents/scoped-custom-element-registry": "^0.0.5",
     "d3": "^7.6.1",
+    "haunted": "^5.0.0",
     "lit": "^2.0.0",
     "lit-svelte-stores": "^0.2.0",
     "lodash-es": "^4.17.21",

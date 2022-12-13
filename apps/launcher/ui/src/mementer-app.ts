@@ -21,8 +21,8 @@ const colors = {
   blue3: '#84aee3',
   green1: '#a8ed64',
   green2: '#8cd446',
-  buttonBlue: '#ff8b8b',
-  buttonRed: '#8bc8ff'
+  buttonBlue: '#8bc8ff',
+  buttonRed: '#ff8b8b'
 }
 const circleColors = {
     large: colors.grey2,
@@ -164,6 +164,8 @@ function Mementer(props: { shadowRoot: any }) {
         const arc = d3.arc().outerRadius(circleSize).innerRadius(0)
         // set up timers
         const duration = circleDurations[size] * 1000
+
+        // todo: remove and auto update using hooks
         const sliceDuration = duration / numberOfSlices[size]
         const text = shadowRoot?.getElementById(`${size}-circle-slice-text`)
         let sliceIndex = 1
@@ -174,6 +176,7 @@ function Mementer(props: { shadowRoot: any }) {
             text!.textContent = `${size} slice: ${sliceIndex}`
           } else clearInterval(timer)
         }, sliceDuration)
+
         // remove old path
         group.select(`#${size}-timer`).remove()
         // create new path
@@ -200,24 +203,13 @@ function Mementer(props: { shadowRoot: any }) {
     }
   
     function startTimer() {
-        const timerButton = shadowRoot?.getElementById('timer-button')
         setTimerActive(true)
-        timerButton!.textContent = 'Stop timer'
-        timerButton!.style.backgroundColor = colors.buttonBlue
         sizesArray.forEach((size: sizes) => createTimer(size))
     }
   
     function stopTimer() {
-        const timerButton = shadowRoot?.getElementById('timer-button')
         setTimerActive(false)
-        timerButton!.textContent = 'Start timer'
-        timerButton!.style.backgroundColor = colors.buttonRed
         sizesArray.forEach((size: sizes) => d3.select(shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove())
-    }
-  
-    function toggleTimer() {
-        if (timerActive) stopTimer()
-        else startTimer()
     }
   
     function findCircleDurationText(size: sizes) {
@@ -225,29 +217,23 @@ function Mementer(props: { shadowRoot: any }) {
     }
   
     function updateCircleDurations() {
-        // update durations
         setCircleDurations({
           small: totalDuration / numberOfSlices.large / numberOfSlices.medium,
           medium: totalDuration / numberOfSlices.large,
           large: totalDuration
         })
-        // update duration text
-        sizesArray.forEach((size: sizes) => {
-          const textElement = shadowRoot?.getElementById(`${size}-circle-durations`)
-          textElement!.textContent = findCircleDurationText(size)
-        })
     }
   
     function updateSlices(size: sizes, slices: number) {
         stopTimer()
-        numberOfSlices[size] = +slices < 1 ? 1 : +slices
+        numberOfSlices[size] = slices < 1 ? 1 : slices
         updateCircleDurations()
         createSlices(size)
     }
   
     function updateTotalDuration(seconds: number) {
         stopTimer()
-        setTotalDuration(+seconds < 1 ? 1 : +seconds)
+        setTotalDuration(seconds < 1 ? 1 : seconds)
         updateCircleDurations()
     }
   
@@ -266,8 +252,8 @@ function Mementer(props: { shadowRoot: any }) {
     useEffect(() => {
         if (!loading) {
             // create svg
-            const canvas = shadowRoot!.getElementById('canvas')
-            const svg = d3.select(canvas).append('svg').attr('width', svgSize).attr('height', svgSize)
+            const shadowCanvas = shadowRoot!.getElementById('canvas')
+            const svg = d3.select(shadowCanvas).append('svg').attr('width', svgSize).attr('height', svgSize)
             // create background
             svg
                 .append('rect')
@@ -298,8 +284,8 @@ function Mementer(props: { shadowRoot: any }) {
               type='number'
               min='1'
               .value=${totalDuration}
-              @keyup=${(e: any) => updateTotalDuration(e.target.value)}
-              @change=${(e: any) => updateTotalDuration(e.target.value)}
+              @keyup=${(e: any) => updateTotalDuration(+e.target.value)}
+              @change=${(e: any) => updateTotalDuration(+e.target.value)}
               style="width: 100px; height: 30px; margin-left: 10px"
             >
           </div>
@@ -311,11 +297,11 @@ function Mementer(props: { shadowRoot: any }) {
                 type='number'
                 min='1'
                 .value=${numberOfSlices.large}
-                @keyup=${(e: any) => updateSlices('large', e.target.value)}
-                @change=${(e: any) => updateSlices('large', e.target.value)}
+                @keyup=${(e: any) => updateSlices('large', +e.target.value)}
+                @change=${(e: any) => updateSlices('large', +e.target.value)}
                 style="width: 50px; height: 30px; margin-right: 10px"
               >
-              <p id='large-circle-durations' style="margin: 0">
+              <p style="margin: 0">
                 ${findCircleDurationText('large')}
               </p>
             </div>
@@ -325,11 +311,11 @@ function Mementer(props: { shadowRoot: any }) {
                 type='number'
                 min='1'
                 .value=${numberOfSlices.medium}
-                @keyup=${(e: any) => updateSlices('medium', e.target.value)}
-                @change=${(e: any) => updateSlices('medium', e.target.value)}
+                @keyup=${(e: any) => updateSlices('medium', +e.target.value)}
+                @change=${(e: any) => updateSlices('medium', +e.target.value)}
                 style="width: 50px; height: 30px; margin-right: 10px"
               >
-              <p id='medium-circle-durations' style="margin: 0">
+              <p style="margin: 0">
                 ${findCircleDurationText('medium')}
               </p>
             </div>
@@ -339,22 +325,21 @@ function Mementer(props: { shadowRoot: any }) {
                 type='number'
                 min='1'
                 .value=${numberOfSlices.small}
-                @keyup=${(e: any) => updateSlices('small', e.target.value)}
-                @change=${(e: any) => updateSlices('small', e.target.value)}
+                @keyup=${(e: any) => updateSlices('small', +e.target.value)}
+                @change=${(e: any) => updateSlices('small', +e.target.value)}
                 style="width: 50px; height: 30px; margin-right: 10px"
               >
-              <p id='small-circle-durations' style="margin: 0">
+              <p style="margin: 0">
                 ${findCircleDurationText('small')}
               </p>
             </div>
           </div>
 
           <button
-            id='timer-button'
-            style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
-            @click=${() => toggleTimer()}
+            style="all: unset; background-color: ${timerActive ? colors.buttonRed : colors.buttonBlue}; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
+            @click=${timerActive ? stopTimer : startTimer}
           >
-            Start timer
+            ${timerActive ? 'Stop' : 'Start'} timer
           </button>
 
           <div style="display: flex; margin-bottom: 20px">

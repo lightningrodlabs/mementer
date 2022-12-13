@@ -51,14 +51,15 @@ function Mementer(props: { shadowRoot: any }) {
       medium: totalDuration / numberOfSlices.large,
       small: totalDuration / numberOfSlices.large / numberOfSlices.medium
     })
-    const [focusState, setFocusState] = useState<focusStates>('default')
     const [timerActive, setTimerActive] = useState(false)
-    const [selectedSlice, setSelectedSlice] = useState<any>(null)
-    const [sliceText, setSliceText] = useState('')
-    const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
     const [largeActiveSlice, setLargeActiveSlice] = useState(0)
     const [mediumActiveSlice, setMediumActiveSlice] = useState(0)
     const [smallActiveSlice, setSmallActiveSlice] = useState(0)
+    const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
+    const [newSliceText, setNewSliceText] = useState('')
+
+    const focusStateRef = useRef<focusStates>('default')
+    const selectedSlicesRef = useRef<any>({ large: 0, medium: 0, small: 0 })
     const timerRefs = useRef<any>({})
 
     async function connectToHolochain() {
@@ -73,10 +74,54 @@ function Mementer(props: { shadowRoot: any }) {
         setLoading(false)
     }
 
-    function findArc(size: sizes, focus: focusStates, start: number, end: number) {
-        const outerRadius = focusStateScales[focus][size] * circleSize / 2
+    function findArc(size: sizes, start: number, end: number) {
+        const outerRadius = focusStateScales[focusStateRef.current][size] * circleSize / 2
         const slice = Math.PI * 2 / numberOfSlices[size]
         return d3.arc().outerRadius(outerRadius).innerRadius(0).startAngle(start * slice).endAngle(end * slice)
+    }
+
+    function fadeOutSelectedSlices() {
+      sizesArray.forEach((size) => {
+        if (selectedSlicesRef.current[size]) {
+          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlicesRef.current[size]}`)
+          d3.select(path).transition('fill').duration(300).style('fill', circleColors[size])
+        }
+      })
+    }
+
+    function fadeInSelectedSlices() {
+      sizesArray.forEach((size) => {
+        if (selectedSlicesRef.current[size]) {
+          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlicesRef.current[size]}`)
+          d3.select(path).transition('fill').duration(300).style('fill', colors.grey1)
+        }
+      })
+    }
+
+    function findNewSelectedSlices(size: sizes, index: number) {
+      const newSelectedSlices = { ...selectedSlicesRef.current }
+      if (size === 'large') {
+        newSelectedSlices.large = index
+        const changed = selectedSlicesRef.current.large !== index
+        if (changed) {
+          newSelectedSlices.medium = 0
+          newSelectedSlices.small = 0
+        }
+      }
+      if (size === 'medium') {
+        newSelectedSlices.large = selectedSlicesRef.current.large || 1
+        newSelectedSlices.medium = index
+        const changed = selectedSlicesRef.current.medium !== index
+        if (changed) {
+          newSelectedSlices.small = 0
+        }
+      }
+      if (size === 'small') {
+        newSelectedSlices.large = selectedSlicesRef.current.large || 1
+        newSelectedSlices.medium = selectedSlicesRef.current.medium || 1
+        newSelectedSlices.small = index
+      }
+      selectedSlicesRef.current = newSelectedSlices
     }
   
     function createSlices(size: sizes) {
@@ -85,69 +130,48 @@ function Mementer(props: { shadowRoot: any }) {
         group.selectAll('path').remove()
         // create new slices
         for (let i = 0; i < numberOfSlices[size]; i += 1) {
-          const arc = findArc(size, focusState, i, i + 1)
+          const arc = findArc(size, i, i + 1)
           group
             .append('path')
-            .attr('id', `${size}-arc-${i}`)
+            .attr('id', `${size}-arc-${i + 1}`)
             .classed('arc', true)
             .attr('d', <any>arc)
             .style('fill', circleColors[size])
             .style('stroke', 'black')
             .on('mouseover', function (this: any) {
-              const hasContent = sliceData[size][i].length
-              if (!hasContent) d3.select(this).transition('fill').duration(300).style('fill', colors.grey1)
+              d3.select(this).transition('fill').duration(300).style('fill', colors.grey1)
             })
             .on('mouseout', function (this: any) {
-              const selected = selectedSlice && selectedSlice.size === size && selectedSlice.index === i
-              const hasContent = sliceData[size][i].length
-              if (!selected && !hasContent) d3.select(this).transition('fill').duration(300).style('fill', circleColors[size])
+              const selected = selectedSlicesRef.current[size] === i + 1
+              if (!selected) d3.select(this).transition('fill').duration(300).style('fill', circleColors[size])
             })
             .on('mousedown', () => {
-              // deselect previous selection
-              const isCurrentSelection = selectedSlice && selectedSlice.size === size && selectedSlice.index === i
-              const previousSelection = selectedSlice && shadowRoot?.getElementById(`${selectedSlice.size}-arc-${selectedSlice.index}`)
-              const hasContent = selectedSlice && sliceData[selectedSlice.size][selectedSlice.index].length
-              if (previousSelection && !isCurrentSelection && !hasContent) d3.select(previousSelection).transition('fill').duration(300).style('fill', circleColors[selectedSlice.size as sizes])
-              // add new selection
-              setSelectedSlice({ size, index: i })
-              const sliceDetails = shadowRoot?.getElementById('selected-slice-details')
-              const sliceInputWrapper = shadowRoot?.getElementById('selected-slice-input-wrapper')
-              const sliceInput = shadowRoot?.getElementById('selected-slice-input') as HTMLInputElement
-              sliceDetails!.textContent = `Selected slice: ${size} ${i + 1} / ${numberOfSlices[size]}`
-              sliceInputWrapper!.style.display = 'flex'
-              sliceInput!.value = sliceData[size][i]
+              fadeOutSelectedSlices()
+              findNewSelectedSlices(size, i + 1)
+              fadeInSelectedSlices()
             })
           // create slice data
           sliceData[size][i] = ''
         }
     }
   
-    function transitionCircleSize(size: sizes, focus: focusStates) {
+    function transitionCircleSize(size: sizes) {
       // transition circle slices
       const group = shadowRoot?.getElementById(`${size}-circle-group`)
       d3.select(group!).selectAll('.arc').each(function (this: any, d, i: number) {
-        d3.select(this).transition().duration(1000).attr('d', <any>findArc(size, focus, i, i + 1))
+        d3.select(this).transition().duration(1000).attr('d', <any>findArc(size, i, i + 1))
       })
       // transition timer
       const timer = shadowRoot?.getElementById(`${size}-timer`)
-      d3.select(timer!).transition('size').duration(1000).attr('transform', `scale(${focusStateScales[focus][size] / 2})`)
+      d3.select(timer!).transition('size').duration(1000).attr('transform', `scale(${focusStateScales[focusStateRef.current][size] / 2})`)
     }
   
     function updateFocusState(focus: focusStates) {
-        setFocusState(focus)
-        sizesArray.forEach((size: sizes) => transitionCircleSize(size, focus))
+        focusStateRef.current = focus
+        sizesArray.forEach((size: sizes) => transitionCircleSize(size))
         if (focus === 'default') {
-          // deselect selected slice if present
-          const currentSelection = selectedSlice && shadowRoot?.getElementById(`${selectedSlice.size}-arc-${selectedSlice.index}`)
-          if (currentSelection) {
-            const hasContent = sliceData[selectedSlice.size][selectedSlice.index].length
-            if (!hasContent) d3.select(currentSelection).transition('fill').duration(300).style('fill', circleColors[selectedSlice.size as sizes])
-            setSelectedSlice(null)
-            const sliceDetails = shadowRoot?.getElementById('selected-slice-details')
-            const sliceInputWrapper = shadowRoot?.getElementById('selected-slice-input-wrapper')
-            sliceDetails!.textContent = 'No slice selected'
-            sliceInputWrapper!.style.display = 'none'
-          }
+          fadeOutSelectedSlices()
+          selectedSlicesRef.current = { large: 0, medium: 0, small: 0 }
         }
     }
   
@@ -190,7 +214,7 @@ function Mementer(props: { shadowRoot: any }) {
             .datum({ startAngle: 0, endAngle: Math.PI * 2 })
             .attr('d', <any>arc)
             .attr('pointer-events', 'none')
-            .attr('transform', `scale(${focusStateScales[focusState][size] / 2})`)
+            .attr('transform', `scale(${focusStateScales[focusStateRef.current][size] / 2})`)
             .style('opacity', 0.5)
             .style('fill', timerColors[size])
             .transition('time')
@@ -245,9 +269,12 @@ function Mementer(props: { shadowRoot: any }) {
     }
   
     function saveSliceText() {
-        sliceData[selectedSlice.size][selectedSlice.index] = sliceText
-        const slice = shadowRoot?.getElementById(`${selectedSlice.size}-arc-${selectedSlice.index}`)
-        d3.select(slice!).transition('fill').duration(300).style('fill', colors.green1)
+      if (timerActive) {
+        // save to active slice
+        sliceData[largeActiveSlice][mediumActiveSlice][smallActiveSlice] = newSliceText
+      } else {
+        // todo: add to selected slice
+      }
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -360,9 +387,9 @@ function Mementer(props: { shadowRoot: any }) {
                 <textarea
                   id='selected-slice-input'
                   rows='14'
-                  .value=${sliceText}
-                  @keyup=${(e: any) => setSliceText(e.target.value)}
-                  @change=${(e: any) => setSliceText(e.target.value)}
+                  .value=${newSliceText}
+                  @keyup=${(e: any) => setNewSliceText(e.target.value)}
+                  @change=${(e: any) => setNewSliceText(e.target.value)}
                   style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
                 ></textarea>
                 <button

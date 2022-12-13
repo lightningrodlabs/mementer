@@ -1,5 +1,5 @@
 import { html, LitElement } from 'lit';
-import { component, useState, useEffect } from 'haunted';
+import { component, useState, useRef, useEffect } from 'haunted';
 import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client';
 import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client';
 import { ScopedElementsMixin } from '@open-wc/scoped-elements';
@@ -45,7 +45,7 @@ function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
     const [loading, setLoading] = useState(true);
     const [totalDuration, setTotalDuration] = useState(6000)
-    const [numberOfSlices, setNumberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
+    const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
     const [circleDurations, setCircleDurations] = useState({
       large: totalDuration,
       medium: totalDuration / numberOfSlices.large,
@@ -54,8 +54,12 @@ function Mementer(props: { shadowRoot: any }) {
     const [focusState, setFocusState] = useState<focusStates>('default')
     const [timerActive, setTimerActive] = useState(false)
     const [selectedSlice, setSelectedSlice] = useState<any>(null)
-    const [newSliceText, setNewSliceText] = useState('')
-    const [sliceData, setSliceData] = useState<any>({ large: [], medium: [], small: [] })
+    const [sliceText, setSliceText] = useState('')
+    const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
+    const [largeActiveSlice, setLargeActiveSlice] = useState(0)
+    const [mediumActiveSlice, setMediumActiveSlice] = useState(0)
+    const [smallActiveSlice, setSmallActiveSlice] = useState(0)
+    const timerRefs = useRef<any>({})
 
     async function connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
@@ -158,25 +162,25 @@ function Mementer(props: { shadowRoot: any }) {
         // create slices
         createSlices(size)
     }
+
+    function setActiveSlice(size: sizes, slice: number) {
+      if (size === 'large') setLargeActiveSlice(slice)
+      if (size === 'medium') setMediumActiveSlice(slice)
+      if (size === 'small') setSmallActiveSlice(slice)
+    }
   
     function createTimer(size: sizes, circleGroup?: any) {
         const group = circleGroup || d3.select(shadowRoot?.getElementById(`${size}-circle-group`)!)
         const arc = d3.arc().outerRadius(circleSize).innerRadius(0)
-        // set up timers
-        const duration = circleDurations[size] * 1000
-
-        // todo: remove and auto update using hooks
-        const sliceDuration = duration / numberOfSlices[size]
-        const text = shadowRoot?.getElementById(`${size}-circle-slice-text`)
+        // set up interval timer
+        const circleDuration = circleDurations[size] * 1000
         let sliceIndex = 1
-        text!.textContent = `${size} slice: ${sliceIndex}`
-        const timer = setInterval(() => {
+        setActiveSlice(size, sliceIndex)
+        timerRefs.current[size] = setInterval(() => {
           sliceIndex += 1
-          if (sliceIndex <= numberOfSlices[size]) {
-            text!.textContent = `${size} slice: ${sliceIndex}`
-          } else clearInterval(timer)
-        }, sliceDuration)
-
+          if (sliceIndex <= numberOfSlices[size]) setActiveSlice(size, sliceIndex)
+          else clearInterval(timerRefs.current[size])
+        }, circleDuration / numberOfSlices[size])
         // remove old path
         group.select(`#${size}-timer`).remove()
         // create new path
@@ -191,7 +195,7 @@ function Mementer(props: { shadowRoot: any }) {
             .style('fill', timerColors[size])
             .transition('time')
             .ease(d3.easeLinear)
-            .duration(duration)
+            .duration(circleDuration)
             .attrTween('d', (d: any) => {
               const interpolate = d3.interpolate(0, d.endAngle)
               return (t: number) => {
@@ -209,7 +213,10 @@ function Mementer(props: { shadowRoot: any }) {
   
     function stopTimer() {
         setTimerActive(false)
-        sizesArray.forEach((size: sizes) => d3.select(shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove())
+        sizesArray.forEach((size: sizes) => {
+          d3.select(shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove()
+          clearInterval(timerRefs.current[size])
+        })
     }
   
     function findCircleDurationText(size: sizes) {
@@ -237,12 +244,8 @@ function Mementer(props: { shadowRoot: any }) {
         updateCircleDurations()
     }
   
-    function updateSliceText(text: string) {
-        setNewSliceText(text)
-    }
-  
     function saveSliceText() {
-        sliceData[selectedSlice.size][selectedSlice.index] = newSliceText
+        sliceData[selectedSlice.size][selectedSlice.index] = sliceText
         const slice = shadowRoot?.getElementById(`${selectedSlice.size}-arc-${selectedSlice.index}`)
         d3.select(slice!).transition('fill').duration(300).style('fill', colors.green1)
     }
@@ -343,9 +346,9 @@ function Mementer(props: { shadowRoot: any }) {
           </button>
 
           <div style="display: flex; margin-bottom: 20px">
-            <p id='large-circle-slice-text' style="margin-right: 20px">large slice: 0</p>
-            <p id='medium-circle-slice-text' style="margin-right: 20px">medium slice: 0</p>
-            <p id='small-circle-slice-text'>small slice: 0</p>
+            <p style="margin-right: 20px">large slice: ${largeActiveSlice}</p>
+            <p style="margin-right: 20px">medium slice: ${mediumActiveSlice}</p>
+            <p>small slice: ${smallActiveSlice}</p>
           </div>
           
           <div style='display: flex; align-items: center'>
@@ -357,9 +360,9 @@ function Mementer(props: { shadowRoot: any }) {
                 <textarea
                   id='selected-slice-input'
                   rows='14'
-                  .value=${newSliceText}
-                  @keyup=${(e: any) => updateSliceText(e.target.value)}
-                  @change=${(e: any) => updateSliceText(e.target.value)}
+                  .value=${sliceText}
+                  @keyup=${(e: any) => setSliceText(e.target.value)}
+                  @change=${(e: any) => setSliceText(e.target.value)}
                   style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
                 ></textarea>
                 <button

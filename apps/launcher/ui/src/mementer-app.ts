@@ -4,6 +4,7 @@ import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client';
 import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client';
 import { ScopedElementsMixin } from '@open-wc/scoped-elements';
 import * as d3 from 'd3';
+import 'lit-flatpickr';
 
 type sizes = 'small' | 'medium' | 'large'
 type focusStates = 'default' | 'small' | 'medium' | 'large'
@@ -277,24 +278,29 @@ function Mementer(props: { shadowRoot: any }) {
       }
     }
 
+    function getDate(position: 'start' | 'end') {
+      const date = shadowRoot.querySelector(`#${position}-date`).getValue()
+      console.log(`${position} date: `, date)
+    }
+
     useEffect(() => connectToHolochain(), [])
 
     useEffect(() => {
         if (!loading) {
-            // create svg
-            const shadowCanvas = shadowRoot!.getElementById('canvas')
-            const svg = d3.select(shadowCanvas).append('svg').attr('width', svgSize).attr('height', svgSize)
-            // create background
-            svg
-                .append('rect')
-                .attr('id', 'background')
-                .attr('width', svgSize)
-                .attr('height', svgSize)
-                .attr('fill', 'white')
-                .style('cursor', 'pointer')
-                .on('mousedown', () => updateFocusState('default'))
-            // create circle layers
-            sizesArray.forEach((size: sizes) => createCircle(svg, size))
+          // create svg
+          const shadowCanvas = shadowRoot!.getElementById('canvas')
+          const svg = d3.select(shadowCanvas).append('svg').attr('width', svgSize).attr('height', svgSize)
+          // create background
+          svg
+              .append('rect')
+              .attr('id', 'background')
+              .attr('width', svgSize)
+              .attr('height', svgSize)
+              .attr('fill', 'white')
+              .style('cursor', 'pointer')
+              .on('mousedown', () => updateFocusState('default'))
+          // create circle layers
+          sizesArray.forEach((size: sizes) => createCircle(svg, size))
         }
 
     }, [loading])
@@ -307,6 +313,32 @@ function Mementer(props: { shadowRoot: any }) {
     return html`
         <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
           <h1>The Mementer: The Chronogram of Life</h1>
+
+          <div style="width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
+            <div style="display: flex; flex-direction: column; align-items: center">
+              <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 10px" />
+              <lit-flatpickr
+                id="start-date"
+                altInput
+                altFormat="F j, Y"
+                dateFormat="Y-m-d"
+                theme="material_orange"
+                .onChange="${() => getDate('start')}"
+              ></lit-flatpickr>
+            </div>
+            <p>Duration</p>
+            <div style="display: flex; flex-direction: column; align-items: center">
+              <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 10px" />
+              <lit-flatpickr
+                id="end-date"
+                altInput
+                altFormat="F j, Y"
+                dateFormat="Y-m-d"
+                theme="material_orange"
+                .onChange="${() => getDate('end')}"
+              ></lit-flatpickr>
+            </div>
+          </div>
 
           <div style="display: flex; align-items: center; margin-bottom: 20px">
             <p style="margin: 0">Total duration (seconds)</p>
@@ -410,7 +442,7 @@ customElements.define('the-mementer', component(Mementer));
 
 export class MementerApp extends ScopedElementsMixin(LitElement) {  
     render() {
-        return html`<the-mementer id='mementer' shadowRoot=${this.shadowRoot}></the-mementer>`
+        return html`<the-mementer shadowRoot=${this.shadowRoot}></the-mementer>`
     }
 
     static get scopedElements() { return {} }

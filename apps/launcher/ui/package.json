@@ -25,6 +25,7 @@
     "d3": "^7.6.1",
     "haunted": "^5.0.0",
     "lit": "^2.0.0",
+    "lit-flatpickr": "^0.4.0",
     "lit-svelte-stores": "^0.2.0",
     "lodash-es": "^4.17.21",
     "svelte": "^3.44.1"

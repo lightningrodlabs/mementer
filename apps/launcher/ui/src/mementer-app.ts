@@ -58,6 +58,8 @@ function Mementer(props: { shadowRoot: any }) {
     const [smallActiveSlice, setSmallActiveSlice] = useState(0)
     const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
     const [newSliceText, setNewSliceText] = useState('')
+    const [startDate, setStartDate] = useState('∞')
+    const [endDate, setEndDate] = useState('∞')
 
     const focusStateRef = useRef<focusStates>('default')
     const selectedSlicesRef = useRef<any>({ large: 0, medium: 0, small: 0 })
@@ -278,9 +280,18 @@ function Mementer(props: { shadowRoot: any }) {
       }
     }
 
-    function getDate(position: 'start' | 'end') {
+    function changeDate(position: 'start' | 'end') {
       const date = shadowRoot.querySelector(`#${position}-date`).getValue()
-      console.log(`${position} date: `, date)
+      if (position === 'start') setStartDate(date)
+      else setEndDate(date)
+    }
+
+    function openDatePicker(position: 'start' | 'end') {
+      shadowRoot!.getElementById(`${position}-date`).open()
+    }
+
+    function findTotalDurationText() {
+      return totalDuration ? `Total duration: ${totalDuration}` : '∞'
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -311,131 +322,94 @@ function Mementer(props: { shadowRoot: any }) {
         </div>
     `
     return html`
-        <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
-          <h1>The Mementer: The Chronogram of Life</h1>
+      <style></style>
+      <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
+        <h1>The Mementer: The Chronogram of Life</h1>
 
-          <div style="width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
-            <div style="display: flex; flex-direction: column; align-items: center">
-              <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 10px" />
-              <lit-flatpickr
-                id="start-date"
-                altInput
-                altFormat="F j, Y"
-                dateFormat="Y-m-d"
-                theme="material_orange"
-                .onChange="${() => getDate('start')}"
-              ></lit-flatpickr>
-            </div>
-            <p>Duration</p>
-            <div style="display: flex; flex-direction: column; align-items: center">
-              <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 10px" />
-              <lit-flatpickr
-                id="end-date"
-                altInput
-                altFormat="F j, Y"
-                dateFormat="Y-m-d"
-                theme="material_orange"
-                .onChange="${() => getDate('end')}"
-              ></lit-flatpickr>
-            </div>
-          </div>
-
-          <div style="display: flex; align-items: center; margin-bottom: 20px">
-            <p style="margin: 0">Total duration (seconds)</p>
-            <input
-              type='number'
-              min='1'
-              .value=${totalDuration}
-              @keyup=${(e: any) => updateTotalDuration(+e.target.value)}
-              @change=${(e: any) => updateTotalDuration(+e.target.value)}
-              style="width: 100px; height: 30px; margin-left: 10px"
+        <div style="width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
+          <div style="display: flex; flex-direction: column; align-items: center; position: relative">
+            <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 10px" />
+            <lit-flatpickr
+              id="start-date"
+              altFormat="F j, Y"
+              dateFormat="Y-m-d"
+              theme="material_orange"
+              style="background: none"
+              .onChange="${() => changeDate('start')}"
             >
-          </div>
-
-          <div style="display: flex; margin-bottom: 20px; width: 1200px;">
-            <div style="display: flex; align-items: center; width: 400px">
-              <p style="margin: 0 10px 0 0">Large slices</p>
-              <input
-                type='number'
-                min='1'
-                .value=${numberOfSlices.large}
-                @keyup=${(e: any) => updateSlices('large', +e.target.value)}
-                @change=${(e: any) => updateSlices('large', +e.target.value)}
-                style="width: 50px; height: 30px; margin-right: 10px"
-              >
-              <p style="margin: 0">
-                ${findCircleDurationText('large')}
-              </p>
-            </div>
-            <div style="display: flex; align-items: center; width: 400px">
-              <p style="margin: 0 10px 0 0">Medium slices</p>
-              <input
-                type='number'
-                min='1'
-                .value=${numberOfSlices.medium}
-                @keyup=${(e: any) => updateSlices('medium', +e.target.value)}
-                @change=${(e: any) => updateSlices('medium', +e.target.value)}
-                style="width: 50px; height: 30px; margin-right: 10px"
-              >
-              <p style="margin: 0">
-                ${findCircleDurationText('medium')}
-              </p>
-            </div>
-            <div style="display: flex; align-items: center; width: 400px">
-              <p style="margin: 0 10px 0 0">Small slices</p>
-              <input
-                type='number'
-                min='1'
-                .value=${numberOfSlices.small}
-                @keyup=${(e: any) => updateSlices('small', +e.target.value)}
-                @change=${(e: any) => updateSlices('small', +e.target.value)}
-                style="width: 50px; height: 30px; margin-right: 10px"
-              >
-              <p style="margin: 0">
-                ${findCircleDurationText('small')}
-              </p>
-            </div>
-          </div>
-
-          <button
-            style="all: unset; background-color: ${timerActive ? colors.buttonRed : colors.buttonBlue}; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
-            @click=${timerActive ? stopTimer : startTimer}
-          >
-            ${timerActive ? 'Stop' : 'Start'} timer
-          </button>
-
-          <div style="display: flex; margin-bottom: 20px">
-            <p style="margin-right: 20px">large slice: ${largeActiveSlice}</p>
-            <p style="margin-right: 20px">medium slice: ${mediumActiveSlice}</p>
-            <p>small slice: ${smallActiveSlice}</p>
-          </div>
-          
-          <div style='display: flex; align-items: center'>
-            <div style='margin-bottom: 20px' id='canvas'></div>
-
-            <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
-              <p id='selected-slice-details' style='margin: 0 0 20px 0'>No slice selected</p>
-              <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
-                <textarea
-                  id='selected-slice-input'
-                  rows='14'
-                  .value=${newSliceText}
-                  @keyup=${(e: any) => setNewSliceText(e.target.value)}
-                  @change=${(e: any) => setNewSliceText(e.target.value)}
-                  style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
-                ></textarea>
-                <button
-                  @click=${() => saveSliceText()}
-                  style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: 80px"
-                >
-                  Save text
-                </button>
+              <div>
+                <input style="width: 20px; height: 50px; visibility: hidden" />
               </div>
+            </lit-flatpickr>
+            <p style="margin: 0; position: absolute; top: 35px;">${startDate}</p>
+            <button @click=${() => openDatePicker('start')} style="position: absolute; width: 100px; top: 70px;">
+              Add start date
+            </button>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center">
+            <p>Duration</p>
+            <p style="margin: 0">${findTotalDurationText()}</p>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; position: relative">
+            <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 10px" />
+            <lit-flatpickr
+              id="end-date"
+              altFormat="F j, Y"
+              dateFormat="Y-m-d"
+              theme="material_orange"
+              style="background: none"
+              .onChange="${() => changeDate('end')}"
+            >
+              <div>
+                <input style="width: 20px; height: 50px; visibility: hidden" />
+              </div>
+            </lit-flatpickr>
+            <p style="margin: 0; position: absolute; top: 35px;">${endDate}</p>
+            <button @click=${() => openDatePicker('end')} style="position: absolute; width: 100px; top: 70px;">
+              Add end date
+            </button>
+          </div>
+        </div>
+
+        <button
+          style="all: unset; background-color: ${timerActive ? colors.buttonRed : colors.buttonBlue}; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
+          @click=${timerActive ? stopTimer : startTimer}
+        >
+          ${timerActive ? 'Stop' : 'Start'} timer
+        </button>
+
+        <div style="display: flex; margin-bottom: 20px">
+          <p style="margin-right: 20px">large slice: ${largeActiveSlice}</p>
+          <p style="margin-right: 20px">medium slice: ${mediumActiveSlice}</p>
+          <p>small slice: ${smallActiveSlice}</p>
+        </div>
+        
+        <div style='display: flex; align-items: center'>
+          <div style='margin-bottom: 20px' id='canvas'></div>
+
+          <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
+            <p id='selected-slice-details' style='margin: 0 0 20px 0'>No slice selected</p>
+            <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
+              <textarea
+                id='selected-slice-input'
+                rows='14'
+                .value=${newSliceText}
+                @keyup=${(e: any) => setNewSliceText(e.target.value)}
+                @change=${(e: any) => setNewSliceText(e.target.value)}
+                style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
+              ></textarea>
+              <button
+                @click=${() => saveSliceText()}
+                style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: 80px"
+              >
+                Save text
+              </button>
             </div>
           </div>
-          
         </div>
-      `
+        
+      </div>
+    `
 }
 
 customElements.define('the-mementer', component(Mementer));
@@ -447,3 +421,60 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     static get scopedElements() { return {} }
 }
+
+// <div style="display: flex; align-items: center; margin-bottom: 20px">
+// <p style="margin: 0">Total duration (seconds)</p>
+// <input
+//   type='number'
+//   min='1'
+//   .value=${totalDuration}
+//   @keyup=${(e: any) => updateTotalDuration(+e.target.value)}
+//   @change=${(e: any) => updateTotalDuration(+e.target.value)}
+//   style="width: 100px; height: 30px; margin-left: 10px"
+// >
+// </div>
+
+// <div style="display: flex; margin-bottom: 20px; width: 1200px;">
+// <div style="display: flex; align-items: center; width: 400px">
+//   <p style="margin: 0 10px 0 0">Large slices</p>
+//   <input
+//     type='number'
+//     min='1'
+//     .value=${numberOfSlices.large}
+//     @keyup=${(e: any) => updateSlices('large', +e.target.value)}
+//     @change=${(e: any) => updateSlices('large', +e.target.value)}
+//     style="width: 50px; height: 30px; margin-right: 10px"
+//   >
+//   <p style="margin: 0">
+//     ${findCircleDurationText('large')}
+//   </p>
+// </div>
+// <div style="display: flex; align-items: center; width: 400px">
+//   <p style="margin: 0 10px 0 0">Medium slices</p>
+//   <input
+//     type='number'
+//     min='1'
+//     .value=${numberOfSlices.medium}
+//     @keyup=${(e: any) => updateSlices('medium', +e.target.value)}
+//     @change=${(e: any) => updateSlices('medium', +e.target.value)}
+//     style="width: 50px; height: 30px; margin-right: 10px"
+//   >
+//   <p style="margin: 0">
+//     ${findCircleDurationText('medium')}
+//   </p>
+// </div>
+// <div style="display: flex; align-items: center; width: 400px">
+//   <p style="margin: 0 10px 0 0">Small slices</p>
+//   <input
+//     type='number'
+//     min='1'
+//     .value=${numberOfSlices.small}
+//     @keyup=${(e: any) => updateSlices('small', +e.target.value)}
+//     @change=${(e: any) => updateSlices('small', +e.target.value)}
+//     style="width: 50px; height: 30px; margin-right: 10px"
+//   >
+//   <p style="margin: 0">
+//     ${findCircleDurationText('small')}
+//   </p>
+// </div>
+// </div>

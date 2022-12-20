@@ -44,7 +44,7 @@ const focusStateScales = {
 
 function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true)
     const [duration, setDuration] = useState(0)
     const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
     const [circleDurations, setCircleDurations] = useState({ large: 0, medium: 0, small: 0 })
@@ -56,6 +56,9 @@ function Mementer(props: { shadowRoot: any }) {
     const [newSliceText, setNewSliceText] = useState('')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
+    const [durationModalOpen, setDurationModalOpen] = useState(false)
+    const [years, setYears] = useState(0)
+    const [days, setDays] = useState(0)
 
     const focusStateRef = useRef<focusStates>('default')
     const selectedSlicesRef = useRef<any>({ large: 0, medium: 0, small: 0 })
@@ -298,11 +301,20 @@ function Mementer(props: { shadowRoot: any }) {
     function formatDuration(milliseconds: number): string {
       const day = 1000 * 60 * 60 * 24
       const year = day * 365
-      const years = Math.floor(milliseconds / year)
-      const days = Math.floor(milliseconds / day) - years * 365
-      const yearsText = years > 0 ? `${years} year${pluralise(years)}` : ''
-      const daysText = days > 0 ? `${days} day${pluralise(days)}` : ''
-      return `${yearsText}${years && days ? ', ' : ''}${daysText}`
+      const totalYears = Math.floor(milliseconds / year)
+      const totalDays = Math.floor(milliseconds / day) - totalYears * 365
+      setYears(totalYears)
+      setDays(totalDays)
+      const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
+      const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
+      return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
+    }
+
+    function changeDuration() {
+      const day = 1000 * 60 * 60 * 24
+      const year = day * 365
+      setDuration(years * year + days * day)
+      setDurationModalOpen(false)
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -334,6 +346,7 @@ function Mementer(props: { shadowRoot: any }) {
     `
     return html`
       <style>
+        p, h3 { margin: 0 }
         .button {
           all: unset;
           cursor: pointer;
@@ -341,14 +354,36 @@ function Mementer(props: { shadowRoot: any }) {
           border-radius: 5px;
           padding: 10px;
         }
+        .close-button {
+          all: unset;
+          cursor: pointer;
+          position: absolute;
+          right: 0;
+          background-color: #eee;
+          border-radius: 50%;
+          width: 25px;
+          height: 25px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .duration-modal {
+          position: absolute;
+          top: 140px;
+          background: white;
+          border-radius: 10px;
+          padding: 20px;
+          box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
+          width: 400px;
+        }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
         <h1>The Mementer: The Chronogram of Life</h1>
 
-        <div style="width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
+        <div style="width: 800px; display: flex; justify-content: space-between; margin-bottom: 20px">
           <div style="display: flex; flex-direction: column; align-items: center">
             <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 20px" />
-            <p style="margin: 0 0 20px 0">${startDate || '∞'}</p>
+            <p style="margin-bottom: 20px">${startDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
                 id="start-date"
@@ -363,17 +398,58 @@ function Mementer(props: { shadowRoot: any }) {
                 </div>
               </lit-flatpickr>
               <button @click=${() => openDatePicker('start')} class="button">
-                ${startDate === '∞' ? 'Add' : 'Change'} start date
+                ${startDate ? 'Change' : 'Add'} start
               </button>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; align-items: center">
-            <p>Duration</p>
-            <p style="margin: 0">${duration ? `${formatDuration(duration)}` : '∞'}</p>
+          <div style="display: flex; flex-direction: column; align-items: center; position: relative">
+            <p style="margin-bottom: 20px">Duration</p>
+            <p style="margin-bottom: 20px">${duration ? `${formatDuration(duration)}` : '∞'}</p>
+            <button @click=${() => setDurationModalOpen(true)} class="button">
+              ${duration ? 'Change' : 'Add'} duration
+            </button>
+            ${durationModalOpen
+              ? html`
+                  <div class="duration-modal">
+                    <div style="width: 100%; display: flex; justify-content: center; position: relative; margin-bottom: 20px">
+                      <button class="close-button" @click=${() => setDurationModalOpen(false)}>X</button>
+                      <h3>Duration modal</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center">
+                      <div style="display: flex; align-items: center; margin-bottom: 20px">
+                        <p>Years</p>
+                        <input
+                          type='number'
+                          min='1'
+                          .value=${years}
+                          @keyup=${(e: any) => setYears(+e.target.value)}
+                          @change=${(e: any) => setYears(+e.target.value)}
+                          style="width: 100px; height: 30px; margin-left: 10px"
+                        >
+                      </div>
+                      <div style="display: flex; align-items: center; margin-bottom: 20px">
+                        <p>Days</p>
+                        <input
+                          type='number'
+                          min='1'
+                          .value=${days}
+                          @keyup=${(e: any) => setDays(+e.target.value)}
+                          @change=${(e: any) => setDays(+e.target.value)}
+                          style="width: 100px; height: 30px; margin-left: 10px"
+                        >
+                      </div>
+                      <button @click=${changeDuration} class="button">
+                        Save duration
+                      </button>
+                    </div>
+                  </div>
+                `
+              : ''
+            }
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
             <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 20px" />
-            <p style="margin: 0 0 20px 0">${endDate || '∞'}</p>
+            <p style="margin-bottom: 20px">${endDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
                 id="end-date"
@@ -388,7 +464,7 @@ function Mementer(props: { shadowRoot: any }) {
                 </div>
               </lit-flatpickr>
               <button @click=${() => openDatePicker('end')} class="button">
-                ${endDate === '∞' ? 'Add' : 'Change'} end date
+                ${endDate ? 'Change' : 'Add'} end
               </button>
             </div>
           </div>
@@ -411,7 +487,7 @@ function Mementer(props: { shadowRoot: any }) {
           <div style='margin-bottom: 20px' id='canvas'></div>
 
           <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
-            <p id='selected-slice-details' style='margin: 0 0 20px 0'>No slice selected</p>
+            <p id='selected-slice-details' style='margin-bottom: 20px'>No slice selected</p>
             <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
               <textarea
                 id='selected-slice-input'

@@ -322,52 +322,64 @@ function Mementer(props: { shadowRoot: any }) {
         </div>
     `
     return html`
-      <style></style>
+      <style>
+        .button {
+          all: unset;
+          cursor: pointer;
+          background-color: #8bc8ff;
+          border-radius: 5px;
+          padding: 10px;
+        }
+      </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
         <h1>The Mementer: The Chronogram of Life</h1>
 
         <div style="width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
-          <div style="display: flex; flex-direction: column; align-items: center; position: relative">
-            <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 10px" />
-            <lit-flatpickr
-              id="start-date"
-              altFormat="F j, Y"
-              dateFormat="Y-m-d"
-              theme="material_orange"
-              style="background: none"
-              .onChange="${() => changeDate('start')}"
-            >
-              <div>
-                <input style="width: 20px; height: 50px; visibility: hidden" />
-              </div>
-            </lit-flatpickr>
-            <p style="margin: 0; position: absolute; top: 35px;">${startDate}</p>
-            <button @click=${() => openDatePicker('start')} style="position: absolute; width: 100px; top: 70px;">
-              Add start date
-            </button>
+          <div style="display: flex; flex-direction: column; align-items: center">
+            <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 20px" />
+            <p style="margin: 0 0 20px 0">${startDate}</p>
+            <div style="position: relative">
+              <lit-flatpickr
+                id="start-date"
+                altFormat="F j, Y"
+                dateFormat="Y-m-d"
+                theme="material_orange"
+                style="background: none; position: absolute;"
+                .onChange="${() => changeDate('start')}"
+              >
+                <div>
+                  <input style="width: 20px; height: 50px; visibility: hidden" />
+                </div>
+              </lit-flatpickr>
+              <button @click=${() => openDatePicker('start')} class="button">
+                ${startDate === '∞' ? 'Add' : 'Change'} start date
+              </button>
+            </div>
           </div>
           <div style="display: flex; flex-direction: column; align-items: center">
             <p>Duration</p>
             <p style="margin: 0">${findTotalDurationText()}</p>
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
-            <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 10px" />
-            <lit-flatpickr
-              id="end-date"
-              altFormat="F j, Y"
-              dateFormat="Y-m-d"
-              theme="material_orange"
-              style="background: none"
-              .onChange="${() => changeDate('end')}"
-            >
-              <div>
-                <input style="width: 20px; height: 50px; visibility: hidden" />
-              </div>
-            </lit-flatpickr>
-            <p style="margin: 0; position: absolute; top: 35px;">${endDate}</p>
-            <button @click=${() => openDatePicker('end')} style="position: absolute; width: 100px; top: 70px;">
-              Add end date
-            </button>
+            <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 20px" />
+            <p style="margin: 0 0 20px 0">${endDate}</p>
+            <div style="position: relative">
+              <lit-flatpickr
+                id="end-date"
+                altFormat="F j, Y"
+                dateFormat="Y-m-d"
+                theme="material_orange"
+                style="background: none; position: absolute;"
+                .onChange="${() => changeDate('end')}"
+              >
+                <div>
+                  <input style="width: 20px; height: 50px; visibility: hidden" />
+                </div>
+              </lit-flatpickr>
+              <button @click=${() => openDatePicker('end')} class="button">
+                ${endDate === '∞' ? 'Add' : 'Change'} end date
+              </button>
+            </div>
           </div>
         </div>
 
@@ -400,7 +412,7 @@ function Mementer(props: { shadowRoot: any }) {
               ></textarea>
               <button
                 @click=${() => saveSliceText()}
-                style="all: unset; background-color: #8bc8ff; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 20px; width: 80px"
+                style="button"
               >
                 Save text
               </button>

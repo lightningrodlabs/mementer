@@ -45,21 +45,17 @@ const focusStateScales = {
 function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
     const [loading, setLoading] = useState(true);
-    const [totalDuration, setTotalDuration] = useState(6000)
+    const [duration, setDuration] = useState(0)
     const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
-    const [circleDurations, setCircleDurations] = useState({
-      large: totalDuration,
-      medium: totalDuration / numberOfSlices.large,
-      small: totalDuration / numberOfSlices.large / numberOfSlices.medium
-    })
+    const [circleDurations, setCircleDurations] = useState({ large: 0, medium: 0, small: 0 })
     const [timerActive, setTimerActive] = useState(false)
     const [largeActiveSlice, setLargeActiveSlice] = useState(0)
     const [mediumActiveSlice, setMediumActiveSlice] = useState(0)
     const [smallActiveSlice, setSmallActiveSlice] = useState(0)
     const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
     const [newSliceText, setNewSliceText] = useState('')
-    const [startDate, setStartDate] = useState('∞')
-    const [endDate, setEndDate] = useState('∞')
+    const [startDate, setStartDate] = useState('')
+    const [endDate, setEndDate] = useState('')
 
     const focusStateRef = useRef<focusStates>('default')
     const selectedSlicesRef = useRef<any>({ large: 0, medium: 0, small: 0 })
@@ -252,9 +248,9 @@ function Mementer(props: { shadowRoot: any }) {
   
     function updateCircleDurations() {
         setCircleDurations({
-          small: totalDuration / numberOfSlices.large / numberOfSlices.medium,
-          medium: totalDuration / numberOfSlices.large,
-          large: totalDuration
+          small: duration / numberOfSlices.large / numberOfSlices.medium,
+          medium: duration / numberOfSlices.large,
+          large: duration
         })
     }
   
@@ -267,7 +263,7 @@ function Mementer(props: { shadowRoot: any }) {
   
     function updateTotalDuration(seconds: number) {
         stopTimer()
-        setTotalDuration(seconds < 1 ? 1 : seconds)
+        setDuration(seconds < 1 ? 1 : seconds)
         updateCircleDurations()
     }
   
@@ -282,16 +278,31 @@ function Mementer(props: { shadowRoot: any }) {
 
     function changeDate(position: 'start' | 'end') {
       const date = shadowRoot.querySelector(`#${position}-date`).getValue()
-      if (position === 'start') setStartDate(date)
-      else setEndDate(date)
+      if (position === 'start') {
+        setStartDate(date)
+        if (endDate) setDuration(new Date(endDate).getTime() - new Date(date).getTime())
+      } else {
+        setEndDate(date)
+        if (startDate) setDuration(new Date(date).getTime() - new Date(startDate).getTime())
+      }
     }
 
     function openDatePicker(position: 'start' | 'end') {
       shadowRoot!.getElementById(`${position}-date`).open()
     }
 
-    function findTotalDurationText() {
-      return totalDuration ? `Total duration: ${totalDuration}` : '∞'
+    function pluralise(number: number): string {
+      return number < 1 || number > 1 ? 's' : ''
+    }
+
+    function formatDuration(milliseconds: number): string {
+      const day = 1000 * 60 * 60 * 24
+      const year = day * 365
+      const years = Math.floor(milliseconds / year)
+      const days = Math.floor(milliseconds / day) - years * 365
+      const yearsText = years > 0 ? `${years} year${pluralise(years)}` : ''
+      const daysText = days > 0 ? `${days} day${pluralise(days)}` : ''
+      return `${yearsText}${years && days ? ', ' : ''}${daysText}`
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -337,7 +348,7 @@ function Mementer(props: { shadowRoot: any }) {
         <div style="width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
           <div style="display: flex; flex-direction: column; align-items: center">
             <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 20px" />
-            <p style="margin: 0 0 20px 0">${startDate}</p>
+            <p style="margin: 0 0 20px 0">${startDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
                 id="start-date"
@@ -358,11 +369,11 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
           <div style="display: flex; flex-direction: column; align-items: center">
             <p>Duration</p>
-            <p style="margin: 0">${findTotalDurationText()}</p>
+            <p style="margin: 0">${duration ? `${formatDuration(duration)}` : '∞'}</p>
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
             <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 20px" />
-            <p style="margin: 0 0 20px 0">${endDate}</p>
+            <p style="margin: 0 0 20px 0">${endDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
                 id="end-date"
@@ -439,7 +450,7 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 // <input
 //   type='number'
 //   min='1'
-//   .value=${totalDuration}
+//   .value=${duration}
 //   @keyup=${(e: any) => updateTotalDuration(+e.target.value)}
 //   @change=${(e: any) => updateTotalDuration(+e.target.value)}
 //   style="width: 100px; height: 30px; margin-left: 10px"

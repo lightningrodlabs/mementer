@@ -387,6 +387,7 @@ function Mementer(props: { shadowRoot: any }) {
             <div style="position: relative">
               <lit-flatpickr
                 id="start-date"
+                maxDate="${endDate}"
                 altFormat="F j, Y"
                 dateFormat="Y-m-d"
                 theme="material_orange"
@@ -453,6 +454,7 @@ function Mementer(props: { shadowRoot: any }) {
             <div style="position: relative">
               <lit-flatpickr
                 id="end-date"
+                minDate="${startDate}"
                 altFormat="F j, Y"
                 dateFormat="Y-m-d"
                 theme="material_orange"

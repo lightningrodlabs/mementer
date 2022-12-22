@@ -279,14 +279,34 @@ function Mementer(props: { shadowRoot: any }) {
       }
     }
 
+    function findTotalYearsAndDays(milliseconds: number) {
+      const day = 1000 * 60 * 60 * 24
+      const year = day * 365
+      const totalYears = Math.floor(milliseconds / year)
+      const totalDays = Math.floor(milliseconds / day) - totalYears * 365
+      return { totalYears, totalDays }
+    }
+
     function changeDate(position: 'start' | 'end') {
       const date = shadowRoot.querySelector(`#${position}-date`).getValue()
       if (position === 'start') {
         setStartDate(date)
-        if (endDate) setDuration(new Date(endDate).getTime() - new Date(date).getTime())
+        if (endDate) {
+          const newDuration = new Date(endDate).getTime() - new Date(date).getTime()
+          setDuration(newDuration)
+          const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
+          setYears(totalYears)
+          setDays(totalDays)
+        }
       } else {
         setEndDate(date)
-        if (startDate) setDuration(new Date(date).getTime() - new Date(startDate).getTime())
+        if (startDate) {
+          const newDuration = new Date(date).getTime() - new Date(startDate).getTime()
+          setDuration(newDuration)
+          const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
+          setYears(totalYears)
+          setDays(totalDays)
+        }
       }
     }
 
@@ -299,21 +319,25 @@ function Mementer(props: { shadowRoot: any }) {
     }
 
     function formatDuration(milliseconds: number): string {
-      const day = 1000 * 60 * 60 * 24
-      const year = day * 365
-      const totalYears = Math.floor(milliseconds / year)
-      const totalDays = Math.floor(milliseconds / day) - totalYears * 365
-      setYears(totalYears)
-      setDays(totalDays)
+      const { totalYears, totalDays } = findTotalYearsAndDays(milliseconds)
       const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
       const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
       return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
     }
 
-    function changeDuration() {
+    function saveDuration() {
       const day = 1000 * 60 * 60 * 24
       const year = day * 365
-      setDuration(years * year + days * day)
+      const newDuration = years * year + days * day
+      setDuration(newDuration)
+      if (startDate) {
+        // update end date
+        const newEndDate = new Date(new Date(startDate).getTime() + newDuration)
+        const y = newEndDate.getFullYear()
+        const m = newEndDate.getMonth() + 1
+        const d = newEndDate.getDate()
+        setEndDate(`${y}-${m}-${d}`)
+      }
       setDurationModalOpen(false)
     }
 
@@ -421,7 +445,7 @@ function Mementer(props: { shadowRoot: any }) {
                         <p>Years</p>
                         <input
                           type='number'
-                          min='1'
+                          min='0'
                           .value=${years}
                           @keyup=${(e: any) => setYears(+e.target.value)}
                           @change=${(e: any) => setYears(+e.target.value)}
@@ -432,14 +456,14 @@ function Mementer(props: { shadowRoot: any }) {
                         <p>Days</p>
                         <input
                           type='number'
-                          min='1'
+                          min='0'
                           .value=${days}
                           @keyup=${(e: any) => setDays(+e.target.value)}
                           @change=${(e: any) => setDays(+e.target.value)}
                           style="width: 100px; height: 30px; margin-left: 10px"
                         >
                       </div>
-                      <button @click=${changeDuration} class="button">
+                      <button @click=${saveDuration} class="button">
                         Save duration
                       </button>
                     </div>

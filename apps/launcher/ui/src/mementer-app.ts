@@ -403,6 +403,7 @@ function Mementer(props: { shadowRoot: any }) {
           padding: 20px;
           box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
           width: 300px;
+          z-index: 5;
         }
         .gold {
           filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);

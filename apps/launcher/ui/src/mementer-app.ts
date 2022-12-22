@@ -76,6 +76,10 @@ function Mementer(props: { shadowRoot: any }) {
         setLoading(false)
     }
 
+    function pluralise(number: number): string {
+      return number < 1 || number > 1 ? 's' : ''
+    }
+
     function findArc(size: sizes, start: number, end: number) {
         const outerRadius = focusStateScales[focusStateRef.current][size] * circleSize / 2
         const slice = Math.PI * 2 / numberOfSlices[size]
@@ -244,17 +248,31 @@ function Mementer(props: { shadowRoot: any }) {
           clearInterval(timerRefs.current[size])
         })
     }
+
+    function findTotalYearsAndDays(milliseconds: number) {
+      const day = 1000 * 60 * 60 * 24
+      const year = day * 365
+      const totalYears = Math.floor(milliseconds / year)
+      const totalDays = Math.floor(milliseconds / day) - totalYears * 365
+      return { totalYears, totalDays }
+    }
   
     function findCircleDurationText(size: sizes) {
-        return `(${+circleDurations[size].toFixed(2)}s / ${+(circleDurations[size] / numberOfSlices[size]).toFixed(2)}s)`
+      if (startDate && endDate) {
+        const { totalYears, totalDays } = findTotalYearsAndDays(circleDurations[size] / numberOfSlices[size])
+        const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
+        const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
+        return totalYears || totalDays ? `(${y}${totalYears && totalDays ? ', ' : ''}${d} / slice)` : ''
+      }
+      return ''
     }
   
     function updateCircleDurations() {
-        setCircleDurations({
-          small: duration / numberOfSlices.large / numberOfSlices.medium,
-          medium: duration / numberOfSlices.large,
-          large: duration
-        })
+      setCircleDurations({
+        small: duration / numberOfSlices.large / numberOfSlices.medium,
+        medium: duration / numberOfSlices.large,
+        large: duration
+      })
     }
   
     function updateSlices(size: sizes, slices: number) {
@@ -264,12 +282,6 @@ function Mementer(props: { shadowRoot: any }) {
         createSlices(size)
     }
   
-    function updateTotalDuration(seconds: number) {
-        stopTimer()
-        setDuration(seconds < 1 ? 1 : seconds)
-        updateCircleDurations()
-    }
-  
     function saveSliceText() {
       if (timerActive) {
         // save to active slice
@@ -277,14 +289,6 @@ function Mementer(props: { shadowRoot: any }) {
       } else {
         // todo: add to selected slice
       }
-    }
-
-    function findTotalYearsAndDays(milliseconds: number) {
-      const day = 1000 * 60 * 60 * 24
-      const year = day * 365
-      const totalYears = Math.floor(milliseconds / year)
-      const totalDays = Math.floor(milliseconds / day) - totalYears * 365
-      return { totalYears, totalDays }
     }
 
     function updateOtherDate(position: 'start' | 'end', dateString: string, milliseconds: number) {
@@ -300,6 +304,7 @@ function Mementer(props: { shadowRoot: any }) {
       const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
       setYears(totalYears)
       setDays(totalDays)
+      updateCircleDurations()
     }
 
     function changeDate(position: 'start' | 'end') {
@@ -321,10 +326,6 @@ function Mementer(props: { shadowRoot: any }) {
 
     function openDatePicker(position: 'start' | 'end') {
       shadowRoot!.getElementById(`${position}-date`).open()
-    }
-
-    function pluralise(number: number): string {
-      return number < 1 || number > 1 ? 's' : ''
     }
 
     function formatDuration(milliseconds: number): string {
@@ -410,7 +411,7 @@ function Mementer(props: { shadowRoot: any }) {
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
         <h1>The Mementer: The Chronogram of Life</h1>
 
-        <div style="width: 800px; display: flex; justify-content: space-between; margin-bottom: 20px">
+        <div style="width: 800px; display: flex; justify-content: space-between; margin-bottom: 40px">
           <div style="display: flex; flex-direction: column; align-items: center">
             <div style="width: 35px; height: 35px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
               <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' class="gold" style="width: 35px; height: 35px" />
@@ -503,6 +504,51 @@ function Mementer(props: { shadowRoot: any }) {
                 ${endDate ? 'Change' : 'Add'} end
               </button>
             </div>
+          </div>
+        </div>
+
+        <div style="display: flex; margin-bottom: 40px">
+          <div style="display: flex; align-items: center; justify-content: center; width: 400px">
+            <p style="margin: 0 10px 0 0">Large slices</p>
+            <input
+              type='number'
+              min='1'
+              .value=${numberOfSlices.large}
+              @keyup=${(e: any) => updateSlices('large', +e.target.value)}
+              @change=${(e: any) => updateSlices('large', +e.target.value)}
+              style="width: 50px; height: 30px; margin-right: 10px"
+            >
+            <p style="margin: 0">
+              ${findCircleDurationText('large')}
+            </p>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 400px">
+            <p style="margin: 0 10px 0 0">Medium slices</p>
+            <input
+              type='number'
+              min='1'
+              .value=${numberOfSlices.medium}
+              @keyup=${(e: any) => updateSlices('medium', +e.target.value)}
+              @change=${(e: any) => updateSlices('medium', +e.target.value)}
+              style="width: 50px; height: 30px; margin-right: 10px"
+            >
+            <p style="margin: 0">
+              ${findCircleDurationText('medium')}
+            </p>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 400px">
+            <p style="margin: 0 10px 0 0">Small slices</p>
+            <input
+              type='number'
+              min='1'
+              .value=${numberOfSlices.small}
+              @keyup=${(e: any) => updateSlices('small', +e.target.value)}
+              @change=${(e: any) => updateSlices('small', +e.target.value)}
+              style="width: 50px; height: 30px; margin-right: 10px"
+            >
+            <p style="margin: 0">
+              ${findCircleDurationText('small')}
+            </p>
           </div>
         </div>
         

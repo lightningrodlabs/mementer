@@ -287,26 +287,35 @@ function Mementer(props: { shadowRoot: any }) {
       return { totalYears, totalDays }
     }
 
+    function updateOtherDate(position: 'start' | 'end', dateString: string, milliseconds: number) {
+      const newDate = new Date(new Date(dateString).getTime() + (position === 'start' ? -milliseconds : milliseconds))
+      const newDateString = `${newDate.getFullYear()}-${newDate.getMonth() + 1}-${newDate.getDate()}`
+      if (position === 'start') setStartDate(newDateString)
+      else setEndDate(newDateString)
+      shadowRoot!.getElementById(`${position}-date`).setDate(newDateString)
+    }
+
+    function updateDuration(newDuration: number) {
+      setDuration(newDuration)
+      const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
+      setYears(totalYears)
+      setDays(totalDays)
+    }
+
     function changeDate(position: 'start' | 'end') {
       const date = shadowRoot.querySelector(`#${position}-date`).getValue()
       if (position === 'start') {
         setStartDate(date)
         if (endDate) {
           const newDuration = new Date(endDate).getTime() - new Date(date).getTime()
-          setDuration(newDuration)
-          const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
-          setYears(totalYears)
-          setDays(totalDays)
-        }
+          updateDuration(newDuration)
+        } else if (duration) updateOtherDate('end', date, duration)
       } else {
         setEndDate(date)
         if (startDate) {
           const newDuration = new Date(date).getTime() - new Date(startDate).getTime()
-          setDuration(newDuration)
-          const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
-          setYears(totalYears)
-          setDays(totalDays)
-        }
+          updateDuration(newDuration)
+        } else if (duration) updateOtherDate('start', date, duration)
       }
     }
 
@@ -330,14 +339,8 @@ function Mementer(props: { shadowRoot: any }) {
       const year = day * 365
       const newDuration = years * year + days * day
       setDuration(newDuration)
-      if (startDate) {
-        // update end date
-        const newEndDate = new Date(new Date(startDate).getTime() + newDuration)
-        const y = newEndDate.getFullYear()
-        const m = newEndDate.getMonth() + 1
-        const d = newEndDate.getDate()
-        setEndDate(`${y}-${m}-${d}`)
-      }
+      if (startDate) updateOtherDate('end', startDate, newDuration)
+      else if (endDate) updateOtherDate('start', endDate, newDuration)
       setDurationModalOpen(false)
     }
 
@@ -393,12 +396,15 @@ function Mementer(props: { shadowRoot: any }) {
         }
         .duration-modal {
           position: absolute;
-          top: 140px;
+          top: 150px;
           background: white;
           border-radius: 10px;
           padding: 20px;
           box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
-          width: 400px;
+          width: 300px;
+        }
+        .gold {
+          filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);
         }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
@@ -406,7 +412,9 @@ function Mementer(props: { shadowRoot: any }) {
 
         <div style="width: 800px; display: flex; justify-content: space-between; margin-bottom: 20px">
           <div style="display: flex; flex-direction: column; align-items: center">
-            <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' style="width: 25px; height: 25px; margin-bottom: 20px" />
+            <div style="width: 35px; height: 35px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
+              <img src='https://upload.wikimedia.org/wikipedia/commons/5/54/Letter_A.svg' alt='alpha' class="gold" style="width: 35px; height: 35px" />
+            </div>
             <p style="margin-bottom: 20px">${startDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
@@ -428,7 +436,7 @@ function Mementer(props: { shadowRoot: any }) {
             </div>
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
-            <p style="margin-bottom: 20px">Duration</p>
+            <p style="height: 35px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">Duration</p>
             <p style="margin-bottom: 20px">${duration ? `${formatDuration(duration)}` : '∞'}</p>
             <button @click=${() => setDurationModalOpen(true)} class="button">
               ${duration ? 'Change' : 'Add'} duration
@@ -473,7 +481,9 @@ function Mementer(props: { shadowRoot: any }) {
             }
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
-            <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' style="width: 20px; height: 20px; margin-bottom: 20px" />
+            <div style="width: 35px; height: 35px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
+              <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' class="gold" style="width: 30px; height: 30px" />
+            </div>
             <p style="margin-bottom: 20px">${endDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
@@ -495,42 +505,9 @@ function Mementer(props: { shadowRoot: any }) {
             </div>
           </div>
         </div>
-
-        <button
-          style="all: unset; background-color: ${timerActive ? colors.buttonRed : colors.buttonBlue}; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
-          @click=${timerActive ? stopTimer : startTimer}
-        >
-          ${timerActive ? 'Stop' : 'Start'} timer
-        </button>
-
-        <div style="display: flex; margin-bottom: 20px">
-          <p style="margin-right: 20px">large slice: ${largeActiveSlice}</p>
-          <p style="margin-right: 20px">medium slice: ${mediumActiveSlice}</p>
-          <p>small slice: ${smallActiveSlice}</p>
-        </div>
         
         <div style='display: flex; align-items: center'>
           <div style='margin-bottom: 20px' id='canvas'></div>
-
-          <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
-            <p id='selected-slice-details' style='margin-bottom: 20px'>No slice selected</p>
-            <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
-              <textarea
-                id='selected-slice-input'
-                rows='14'
-                .value=${newSliceText}
-                @keyup=${(e: any) => setNewSliceText(e.target.value)}
-                @change=${(e: any) => setNewSliceText(e.target.value)}
-                style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
-              ></textarea>
-              <button
-                @click=${() => saveSliceText()}
-                style="button"
-              >
-                Save text
-              </button>
-            </div>
-          </div>
         </div>
         
       </div>
@@ -602,4 +579,37 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 //     ${findCircleDurationText('small')}
 //   </p>
 // </div>
+// </div>
+
+// <button
+// style="all: unset; background-color: ${timerActive ? colors.buttonRed : colors.buttonBlue}; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
+// @click=${timerActive ? stopTimer : startTimer}
+// >
+// ${timerActive ? 'Stop' : 'Start'} timer
+// </button>
+
+// <div style="display: flex; margin-bottom: 20px">
+// <p style="margin-right: 20px">large slice: ${largeActiveSlice}</p>
+// <p style="margin-right: 20px">medium slice: ${mediumActiveSlice}</p>
+// <p>small slice: ${smallActiveSlice}</p>
+// </div>
+
+// <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
+//   <p id='selected-slice-details' style='margin-bottom: 20px'>No slice selected</p>
+//   <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
+//     <textarea
+//       id='selected-slice-input'
+//       rows='14'
+//       .value=${newSliceText}
+//       @keyup=${(e: any) => setNewSliceText(e.target.value)}
+//       @change=${(e: any) => setNewSliceText(e.target.value)}
+//       style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
+//     ></textarea>
+//     <button
+//       @click=${() => saveSliceText()}
+//       style="button"
+//     >
+//       Save text
+//     </button>
+//   </div>
 // </div>

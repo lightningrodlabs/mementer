@@ -407,6 +407,13 @@ function Mementer(props: { shadowRoot: any }) {
         .gold {
           filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);
         }
+        .mementer-infinity {
+          width: 60px;
+          height: 60px;
+          position: absolute;
+          top: 49px;
+          left: 320px;
+        }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
         <h1>The Mementer: The Chronogram of Life</h1>
@@ -552,7 +559,8 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
         </div>
         
-        <div style='display: flex; align-items: center'>
+        <div style='display: flex; align-items: center; position: relative'>
+          <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
           <div style='margin-bottom: 20px' id='canvas'></div>
         </div>
         

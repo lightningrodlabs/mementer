@@ -267,18 +267,18 @@ function Mementer(props: { shadowRoot: any }) {
       return ''
     }
   
-    function updateCircleDurations() {
+    function updateCircleDurations(newDuration: number) {
       setCircleDurations({
-        small: duration / numberOfSlices.large / numberOfSlices.medium,
-        medium: duration / numberOfSlices.large,
-        large: duration
+        small: newDuration / numberOfSlices.large / numberOfSlices.medium,
+        medium: newDuration / numberOfSlices.large,
+        large: newDuration
       })
     }
   
     function updateSlices(size: sizes, slices: number) {
         stopTimer()
         numberOfSlices[size] = slices < 1 ? 1 : slices
-        updateCircleDurations()
+        updateCircleDurations(duration)
         createSlices(size)
     }
   
@@ -297,6 +297,7 @@ function Mementer(props: { shadowRoot: any }) {
       if (position === 'start') setStartDate(newDateString)
       else setEndDate(newDateString)
       shadowRoot!.getElementById(`${position}-date`).setDate(newDateString)
+      updateCircleDurations(milliseconds)
     }
 
     function updateDuration(newDuration: number) {
@@ -304,7 +305,7 @@ function Mementer(props: { shadowRoot: any }) {
       const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
       setYears(totalYears)
       setDays(totalDays)
-      updateCircleDurations()
+      updateCircleDurations(newDuration)
     }
 
     function changeDate(position: 'start' | 'end') {

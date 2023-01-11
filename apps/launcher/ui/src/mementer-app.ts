@@ -59,6 +59,7 @@ function Mementer(props: { shadowRoot: any }) {
     const [durationModalOpen, setDurationModalOpen] = useState(false)
     const [years, setYears] = useState(0)
     const [days, setDays] = useState(0)
+    const [selectedSlices, setSelectedSlices] = useState({ large: 0, medium: 0, small: 0 })
 
     const focusStateRef = useRef<focusStates>('default')
     const selectedSlicesRef = useRef<any>({ large: 0, medium: 0, small: 0 })
@@ -128,6 +129,7 @@ function Mementer(props: { shadowRoot: any }) {
         newSelectedSlices.small = index
       }
       selectedSlicesRef.current = newSelectedSlices
+      setSelectedSlices(newSelectedSlices)
     }
   
     function createSlices(size: sizes) {
@@ -156,8 +158,8 @@ function Mementer(props: { shadowRoot: any }) {
               findNewSelectedSlices(size, i + 1)
               fadeInSelectedSlices()
             })
-          // create slice data
-          sliceData[size][i] = ''
+          // // create slice data
+          // sliceData[size][i] = ''
         }
     }
   
@@ -178,6 +180,7 @@ function Mementer(props: { shadowRoot: any }) {
         if (focus === 'default') {
           fadeOutSelectedSlices()
           selectedSlicesRef.current = { large: 0, medium: 0, small: 0 }
+          setSelectedSlices({ large: 0, medium: 0, small: 0 })
         }
     }
   
@@ -235,10 +238,11 @@ function Mementer(props: { shadowRoot: any }) {
             })
             .on('end', () => createTimer(size, group))
     }
-  
-    function startTimer() {
-        setTimerActive(true)
-        sizesArray.forEach((size: sizes) => createTimer(size))
+
+    function startTimer(start: string, end: string) {
+      console.log('startTimer: ', start, end, new Date())
+      // setTimerActive(true)
+      // sizesArray.forEach((size: sizes) => createTimer(size))
     }
   
     function stopTimer() {
@@ -291,16 +295,24 @@ function Mementer(props: { shadowRoot: any }) {
       }
     }
 
-    function updateOtherDate(position: 'start' | 'end', dateString: string, milliseconds: number) {
-      const newDate = new Date(new Date(dateString).getTime() + (position === 'start' ? -milliseconds : milliseconds))
-      const newDateString = `${newDate.getFullYear()}-${newDate.getMonth() + 1}-${newDate.getDate()}`
-      if (position === 'start') setStartDate(newDateString)
-      else setEndDate(newDateString)
-      shadowRoot!.getElementById(`${position}-date`).setDate(newDateString)
+    function formatDate(date: Date) {
+      return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+    }
+
+    function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
+      const time = position === 'start' ? -milliseconds : milliseconds
+      const newDate = formatDate(new Date(new Date(knownDate).getTime() + time))
+      if (position === 'start') setStartDate(newDate)
+      else setEndDate(newDate)
+      shadowRoot!.getElementById(`${position}-date`).setDate(newDate)
       updateCircleDurations(milliseconds)
+      const start = position === 'start' ? newDate : startDate
+      const end = position === 'end' ? newDate : endDate
+      startTimer(start, end)
     }
 
     function updateDuration(newDuration: number) {
+      // used when start or end dates changed
       setDuration(newDuration)
       const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
       setYears(totalYears)
@@ -309,34 +321,25 @@ function Mementer(props: { shadowRoot: any }) {
     }
 
     function changeDate(position: 'start' | 'end') {
-      const date = shadowRoot.querySelector(`#${position}-date`).getValue()
+      const newDate = shadowRoot.querySelector(`#${position}-date`).getValue()
       if (position === 'start') {
-        setStartDate(date)
+        setStartDate(newDate)
         if (endDate) {
-          const newDuration = new Date(endDate).getTime() - new Date(date).getTime()
+          const newDuration = new Date(endDate).getTime() - new Date(newDate).getTime()
           updateDuration(newDuration)
-        } else if (duration) updateOtherDate('end', date, duration)
+          startTimer(newDate, endDate)
+        } else if (duration) updateOtherDate('end', newDate, duration)
       } else {
-        setEndDate(date)
+        setEndDate(newDate)
         if (startDate) {
-          const newDuration = new Date(date).getTime() - new Date(startDate).getTime()
+          const newDuration = new Date(newDate).getTime() - new Date(startDate).getTime()
           updateDuration(newDuration)
-        } else if (duration) updateOtherDate('start', date, duration)
+          startTimer(startDate, newDate)
+        } else if (duration) updateOtherDate('start', newDate, duration)
       }
     }
 
-    function openDatePicker(position: 'start' | 'end') {
-      shadowRoot!.getElementById(`${position}-date`).open()
-    }
-
-    function formatDuration(milliseconds: number): string {
-      const { totalYears, totalDays } = findTotalYearsAndDays(milliseconds)
-      const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
-      const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
-      return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
-    }
-
-    function saveDuration() {
+    function changeDuration() {
       const day = 1000 * 60 * 60 * 24
       const year = day * 365
       const newDuration = years * year + days * day
@@ -344,6 +347,41 @@ function Mementer(props: { shadowRoot: any }) {
       if (startDate) updateOtherDate('end', startDate, newDuration)
       else if (endDate) updateOtherDate('start', endDate, newDuration)
       setDurationModalOpen(false)
+    }
+
+    function openDatePicker(position: 'start' | 'end') {
+      shadowRoot!.getElementById(`${position}-date`).open()
+    }
+
+    function durationText(milliseconds: number): string {
+      const { totalYears, totalDays } = findTotalYearsAndDays(milliseconds)
+      const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
+      const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
+      return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
+    }
+
+    function findDates() {
+      if (startDate && endDate) {
+        const largeSliceDuration = circleDurations.large / numberOfSlices.large
+        const mediumSliceDuration = circleDurations.medium / numberOfSlices.medium
+        const smallSliceDuration = circleDurations.small / numberOfSlices.small
+        const largeStart = new Date(startDate).getTime() + (selectedSlices.large - 1) * largeSliceDuration
+        const mediumStart = largeStart + (selectedSlices.medium - 1) * mediumSliceDuration
+        const smallStart = mediumStart + (selectedSlices.small - 1) * smallSliceDuration
+        if (selectedSlices.small) {
+          const smallEnd = smallStart + smallSliceDuration
+          return `${formatDate(new Date(smallStart))}  to  ${formatDate(new Date(smallEnd))}`
+        }
+        if (selectedSlices.medium) {
+          const mediumEnd = mediumStart + mediumSliceDuration
+          return `${formatDate(new Date(mediumStart))}  to  ${formatDate(new Date(mediumEnd))}`
+        }
+        if (selectedSlices.large) {
+          const largeEnd = largeStart + largeSliceDuration
+          return `${formatDate(new Date(largeStart))}  to  ${formatDate(new Date(largeEnd))}`
+        }
+      }
+      return '∞  to  ∞'
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -447,7 +485,7 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
             <p style="height: 35px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">Duration</p>
-            <p style="margin-bottom: 20px">${duration ? `${formatDuration(duration)}` : '∞'}</p>
+            <p style="margin-bottom: 20px">${duration ? `${durationText(duration)}` : '∞'}</p>
             <button @click=${() => setDurationModalOpen(true)} class="button">
               ${duration ? 'Change' : 'Add'} duration
             </button>
@@ -481,7 +519,7 @@ function Mementer(props: { shadowRoot: any }) {
                           style="width: 100px; height: 30px; margin-left: 10px"
                         >
                       </div>
-                      <button @click=${saveDuration} class="button">
+                      <button @click=${changeDuration} class="button">
                         Save duration
                       </button>
                     </div>
@@ -561,9 +599,31 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
         </div>
         
-        <div style='display: flex; align-items: center; position: relative'>
-          <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
-          <div style='margin-bottom: 20px' id='canvas'></div>
+        <div style='display: flex; width: 1300px'>
+          <div style='position: relative; margin-left: 300px'>
+            <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
+            <div style='margin-bottom: 20px' id='canvas'></div>
+          </div>
+
+          <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
+            <p style='margin-bottom: 20px'>Large: ${selectedSlices.large}, Medium: ${selectedSlices.medium}, Small: ${selectedSlices.small}</p>
+            <p style='margin-bottom: 20px'>${findDates()}</p>
+            <div style='flex-direction: column; align-items: center; display: ${selectedSlices.large ? 'flex' : 'none'}'>
+              <textarea
+                rows='14'
+                .value=${newSliceText}
+                @keyup=${(e: any) => setNewSliceText(e.target.value)}
+                @change=${(e: any) => setNewSliceText(e.target.value)}
+                style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap; margin-bottom: 20px'
+              ></textarea>
+              <button
+                @click=${() => saveSliceText()}
+                class="button"
+              >
+                Save text
+              </button>
+            </div>
+          </div>
         </div>
         
       </div>
@@ -579,93 +639,3 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     static get scopedElements() { return {} }
 }
-
-// <div style="display: flex; align-items: center; margin-bottom: 20px">
-// <p style="margin: 0">Total duration (seconds)</p>
-// <input
-//   type='number'
-//   min='1'
-//   .value=${duration}
-//   @keyup=${(e: any) => updateTotalDuration(+e.target.value)}
-//   @change=${(e: any) => updateTotalDuration(+e.target.value)}
-//   style="width: 100px; height: 30px; margin-left: 10px"
-// >
-// </div>
-
-// <div style="display: flex; margin-bottom: 20px; width: 1200px;">
-// <div style="display: flex; align-items: center; width: 400px">
-//   <p style="margin: 0 10px 0 0">Large slices</p>
-//   <input
-//     type='number'
-//     min='1'
-//     .value=${numberOfSlices.large}
-//     @keyup=${(e: any) => updateSlices('large', +e.target.value)}
-//     @change=${(e: any) => updateSlices('large', +e.target.value)}
-//     style="width: 50px; height: 30px; margin-right: 10px"
-//   >
-//   <p style="margin: 0">
-//     ${findCircleDurationText('large')}
-//   </p>
-// </div>
-// <div style="display: flex; align-items: center; width: 400px">
-//   <p style="margin: 0 10px 0 0">Medium slices</p>
-//   <input
-//     type='number'
-//     min='1'
-//     .value=${numberOfSlices.medium}
-//     @keyup=${(e: any) => updateSlices('medium', +e.target.value)}
-//     @change=${(e: any) => updateSlices('medium', +e.target.value)}
-//     style="width: 50px; height: 30px; margin-right: 10px"
-//   >
-//   <p style="margin: 0">
-//     ${findCircleDurationText('medium')}
-//   </p>
-// </div>
-// <div style="display: flex; align-items: center; width: 400px">
-//   <p style="margin: 0 10px 0 0">Small slices</p>
-//   <input
-//     type='number'
-//     min='1'
-//     .value=${numberOfSlices.small}
-//     @keyup=${(e: any) => updateSlices('small', +e.target.value)}
-//     @change=${(e: any) => updateSlices('small', +e.target.value)}
-//     style="width: 50px; height: 30px; margin-right: 10px"
-//   >
-//   <p style="margin: 0">
-//     ${findCircleDurationText('small')}
-//   </p>
-// </div>
-// </div>
-
-// <button
-// style="all: unset; background-color: ${timerActive ? colors.buttonRed : colors.buttonBlue}; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px"
-// @click=${timerActive ? stopTimer : startTimer}
-// >
-// ${timerActive ? 'Stop' : 'Start'} timer
-// </button>
-
-// <div style="display: flex; margin-bottom: 20px">
-// <p style="margin-right: 20px">large slice: ${largeActiveSlice}</p>
-// <p style="margin-right: 20px">medium slice: ${mediumActiveSlice}</p>
-// <p>small slice: ${smallActiveSlice}</p>
-// </div>
-
-// <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
-//   <p id='selected-slice-details' style='margin-bottom: 20px'>No slice selected</p>
-//   <div id='selected-slice-input-wrapper' style='display: none; flex-direction: column; align-items: center'>
-//     <textarea
-//       id='selected-slice-input'
-//       rows='14'
-//       .value=${newSliceText}
-//       @keyup=${(e: any) => setNewSliceText(e.target.value)}
-//       @change=${(e: any) => setNewSliceText(e.target.value)}
-//       style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap'
-//     ></textarea>
-//     <button
-//       @click=${() => saveSliceText()}
-//       style="button"
-//     >
-//       Save text
-//     </button>
-//   </div>
-// </div>

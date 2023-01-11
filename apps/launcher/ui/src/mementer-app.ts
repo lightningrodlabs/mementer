@@ -1,5 +1,6 @@
 import { html, LitElement } from 'lit';
 import { component, useState, useRef, useEffect } from 'haunted';
+import { v4 as uuidv4 } from 'uuid';
 import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client';
 import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client';
 import { ScopedElementsMixin } from '@open-wc/scoped-elements';
@@ -45,11 +46,12 @@ const focusStateScales = {
 function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
     const [loading, setLoading] = useState(true)
+    const [beads, setBeads] = useState<any[]>([])
     const [duration, setDuration] = useState(0)
     const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
     const [circleDurations, setCircleDurations] = useState({ large: 0, medium: 0, small: 0 })
     const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
-    const [newSliceText, setNewSliceText] = useState('')
+    const [newBeadText, setNewBeadText] = useState('')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
     const [durationModalOpen, setDurationModalOpen] = useState(false)
@@ -239,7 +241,7 @@ function Mementer(props: { shadowRoot: any }) {
             .on('end', () => createTimer(size, circleDuration, 0, group))
     }
 
-    function startTimer(start: string, end: string) {
+    function startTimers(start: string, end: string) {
       const newDuration = findDuration(start, end)
       // update circle durations
       const newCircleDurations = findNewCircleDurations(newDuration)
@@ -257,6 +259,7 @@ function Mementer(props: { shadowRoot: any }) {
       createTimer('small', newCircleDurations.small, smallOffset)
     }
   
+    // todo: revisit
     function stopTimer() {
         // setTimerActive(false)
         // sizesArray.forEach((size: sizes) => {
@@ -276,27 +279,37 @@ function Mementer(props: { shadowRoot: any }) {
     function findCircleDurationText(size: sizes) {
       if (startDate && endDate) {
         const { totalYears, totalDays } = findTotalYearsAndDays(circleDurations[size] / numberOfSlices[size])
-        const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
-        const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
-        return totalYears || totalDays ? `(${y}${totalYears && totalDays ? ', ' : ''}${d} / slice)` : ''
+        if (totalYears || totalDays) {
+          const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
+          const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
+          return totalYears || totalDays ? `(${y}${totalYears && totalDays ? ', ' : ''}${d} / slice)` : ''
+        }
+        return '(<1 day / slice)'
       }
       return ''
     }
   
+    // todo: revisit
     function updateSlices(size: sizes, slices: number) {
-        stopTimer()
-        numberOfSlices[size] = slices < 1 ? 1 : slices
-        setCircleDurations(findNewCircleDurations(duration))
-        createSlices(size)
+      stopTimer()
+      numberOfSlices[size] = slices < 1 ? 1 : slices
+      setCircleDurations(findNewCircleDurations(duration))
+      createSlices(size)
     }
   
-    function saveSliceText() {
-      // if (timerActive) {
-      //   // save to active slice
-      //   sliceData[largeActiveSlice][mediumActiveSlice][smallActiveSlice] = newSliceText
-      // } else {
-      //   // todo: add to selected slice
-      // }
+    function saveNewBead() {
+      let timeStamp = new Date()
+      const { large, medium, small } = selectedSlices
+      if (large || medium || small) {
+        // find start of selected slice
+        const largeDuration = (duration / numberOfSlices.large) * large
+        const mediumDuration = (circleDurations.medium / numberOfSlices.medium) * medium
+        const smallDuration = (circleDurations.small / numberOfSlices.small) * medium
+        const durationFromStartDate = largeDuration + mediumDuration + smallDuration
+        timeStamp = new Date(new Date(startDate).getTime() + durationFromStartDate)
+      }
+      const newBead = { id: uuidv4(), text: newBeadText, timeStamp, createdAt: new Date() }
+      setBeads([...beads, newBead])
     }
 
     function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
@@ -307,7 +320,7 @@ function Mementer(props: { shadowRoot: any }) {
       shadowRoot!.getElementById(`${position}-date`).setDate(newDate)
       const start = position === 'start' ? newDate : startDate
       const end = position === 'end' ? newDate : endDate
-      startTimer(start, end)
+      startTimers(start, end)
     }
 
     function updateDuration(newDuration: number) {
@@ -324,13 +337,13 @@ function Mementer(props: { shadowRoot: any }) {
         setStartDate(newDate)
         if (endDate) {
           updateDuration(findDuration(newDate, endDate))
-          startTimer(newDate, endDate)
+          startTimers(newDate, endDate)
         } else if (duration) updateOtherDate('end', newDate, duration)
       } else {
         setEndDate(newDate)
         if (startDate) {
           updateDuration(findDuration(startDate, newDate))
-          startTimer(startDate, newDate)
+          startTimers(startDate, newDate)
         } else if (duration) updateOtherDate('start', newDate, duration)
       }
     }
@@ -467,6 +480,16 @@ function Mementer(props: { shadowRoot: any }) {
           position: absolute;
           top: 49px;
           left: 320px;
+        }
+        .bead-card {
+          all: unset;
+          width: 300px;
+          border: 2px solid ${colors.grey1};
+          border-radius: 20px;
+          background-color: white;
+          padding: 20px;
+          white-space: pre-wrap;
+          margin-bottom: 20px;
         }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
@@ -613,29 +636,44 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
         </div>
         
-        <div style='display: flex; width: 1300px'>
-          <div style='position: relative; margin-left: 300px'>
+        <div style='display: flex; width: 1400px'>
+          <div style='width: 300px; height: 100%; margin-right: 50px'>
+            ${startDate && endDate && html`
+              <div style='display: flex; flex-direction: column; align-items: center'>
+                <textarea
+                  class='bead-card'
+                  rows='14'
+                  .value=${newBeadText}
+                  @keyup=${(e: any) => setNewBeadText(e.target.value)}
+                  @change=${(e: any) => setNewBeadText(e.target.value)}
+                ></textarea>
+                <button
+                  @click=${() => saveNewBead()}
+                  class="button"
+                >
+                  Save bead
+                </button>
+              </div>
+            `}
+          </div>
+
+          <div style='position: relative'>
             <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
             <div style='margin-bottom: 20px' id='canvas'></div>
           </div>
 
-          <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
-            <p style='margin-bottom: 20px'>Large: ${selectedSlices.large}, Medium: ${selectedSlices.medium}, Small: ${selectedSlices.small}</p>
-            <p style='margin-bottom: 20px'>${findDates()}</p>
-            <div style='flex-direction: column; align-items: center; display: ${selectedSlices.large ? 'flex' : 'none'}'>
-              <textarea
-                rows='14'
-                .value=${newSliceText}
-                @keyup=${(e: any) => setNewSliceText(e.target.value)}
-                @change=${(e: any) => setNewSliceText(e.target.value)}
-                style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap; margin-bottom: 20px'
-              ></textarea>
-              <button
-                @click=${() => saveSliceText()}
-                class="button"
-              >
-                Save text
-              </button>
+          <div style='display: flex; flex-direction: column; align-items: center; width: 300px; height: 100%; margin-left: 50px'>
+            ${beads.map((bead) => 
+              html`
+                <textarea
+                  class='bead-card'
+                  rows='14'
+                  .value=${bead.text}
+                  @keyup=${(e: any) => setNewBeadText(e.target.value)}
+                  @change=${(e: any) => setNewBeadText(e.target.value)}
+                ></textarea>
+              `
+            )}
             </div>
           </div>
         </div>
@@ -653,3 +691,23 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 
     static get scopedElements() { return {} }
 }
+
+// <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
+//   <p style='margin-bottom: 20px'>Large: ${selectedSlices.large}, Medium: ${selectedSlices.medium}, Small: ${selectedSlices.small}</p>
+//   <p style='margin-bottom: 20px'>${findDates()}</p>
+//   <div style='flex-direction: column; align-items: center; display: ${selectedSlices.large ? 'flex' : 'none'}'>
+//     <textarea
+//       rows='14'
+//       .value=${newSliceText}
+//       @keyup=${(e: any) => setNewBeadText(e.target.value)}
+//       @change=${(e: any) => setNewBeadText(e.target.value)}
+//       style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap; margin-bottom: 20px'
+//     ></textarea>
+//     <button
+//       @click=${() => saveNewBead()}
+//       class="button"
+//     >
+//       Save text
+//     </button>
+//   </div>
+// </div>

@@ -48,10 +48,6 @@ function Mementer(props: { shadowRoot: any }) {
     const [duration, setDuration] = useState(0)
     const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
     const [circleDurations, setCircleDurations] = useState({ large: 0, medium: 0, small: 0 })
-    const [timerActive, setTimerActive] = useState(false)
-    const [largeActiveSlice, setLargeActiveSlice] = useState(0)
-    const [mediumActiveSlice, setMediumActiveSlice] = useState(0)
-    const [smallActiveSlice, setSmallActiveSlice] = useState(0)
     const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
     const [newSliceText, setNewSliceText] = useState('')
     const [startDate, setStartDate] = useState('')
@@ -196,31 +192,35 @@ function Mementer(props: { shadowRoot: any }) {
         createSlices(size)
     }
 
-    function setActiveSlice(size: sizes, slice: number) {
-      if (size === 'large') setLargeActiveSlice(slice)
-      if (size === 'medium') setMediumActiveSlice(slice)
-      if (size === 'small') setSmallActiveSlice(slice)
+    function findDuration(start: string, end: string) {
+      return new Date(end).getTime() - new Date(start).getTime()
+    }
+
+    function formatDate(date: Date) {
+      return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+    }
+
+    function findNewCircleDurations(newDuration: number) {
+      return {
+        small: newDuration / numberOfSlices.large / numberOfSlices.medium,
+        medium: newDuration / numberOfSlices.large,
+        large: newDuration
+      }
     }
   
-    function createTimer(size: sizes, circleGroup?: any) {
+    function createTimer(size: sizes, circleDuration: number, offset: number, circleGroup?: any) {
         const group = circleGroup || d3.select(shadowRoot?.getElementById(`${size}-circle-group`)!)
         const arc = d3.arc().outerRadius(circleSize).innerRadius(0)
-        // set up interval timer
-        const circleDuration = circleDurations[size] * 1000
-        let sliceIndex = 1
-        setActiveSlice(size, sliceIndex)
-        timerRefs.current[size] = setInterval(() => {
-          sliceIndex += 1
-          if (sliceIndex <= numberOfSlices[size]) setActiveSlice(size, sliceIndex)
-          else clearInterval(timerRefs.current[size])
-        }, circleDuration / numberOfSlices[size])
+        // calculate current angle
+        const offsetPercentage = (100 / circleDuration) * offset
+        const currentAngle = offset ? Math.PI * 2 * offsetPercentage / 100 : 0
         // remove old path
         group.select(`#${size}-timer`).remove()
         // create new path
         group
             .append('path')
             .attr('id', `${size}-timer`)
-            .datum({ startAngle: 0, endAngle: Math.PI * 2 })
+            .datum({ startAngle: 0, endAngle: currentAngle })
             .attr('d', <any>arc)
             .attr('pointer-events', 'none')
             .attr('transform', `scale(${focusStateScales[focusStateRef.current][size] / 2})`)
@@ -228,29 +228,41 @@ function Mementer(props: { shadowRoot: any }) {
             .style('fill', timerColors[size])
             .transition('time')
             .ease(d3.easeLinear)
-            .duration(circleDuration)
+            .duration(circleDuration - offset)
             .attrTween('d', (d: any) => {
-              const interpolate = d3.interpolate(0, d.endAngle)
+              const interpolate = d3.interpolate(currentAngle, Math.PI * 2)
               return (t: number) => {
                 d.endAngle = interpolate(t)
                 return <any>arc(d)
               }
             })
-            .on('end', () => createTimer(size, group))
+            .on('end', () => createTimer(size, circleDuration, 0, group))
     }
 
     function startTimer(start: string, end: string) {
-      console.log('startTimer: ', start, end, new Date())
-      // setTimerActive(true)
-      // sizesArray.forEach((size: sizes) => createTimer(size))
+      const newDuration = findDuration(start, end)
+      // update circle durations
+      const newCircleDurations = findNewCircleDurations(newDuration)
+      setCircleDurations(newCircleDurations)
+      // calculate slice offsets and start timers
+      const largeOffset = new Date().getTime() - new Date(start).getTime()
+      createTimer('large', newCircleDurations.large, largeOffset)
+      const largeSliceDuration = newCircleDurations.large / numberOfSlices.large
+      const largeSlicesFinished = Math.floor(largeOffset / largeSliceDuration)
+      const mediumOffset = largeOffset - (largeSlicesFinished * largeSliceDuration)
+      createTimer('medium', newCircleDurations.medium, mediumOffset)
+      const mediumSliceDuration = newCircleDurations.medium / numberOfSlices.medium
+      const mediumSlicesFinished = Math.floor(mediumOffset / mediumSliceDuration)
+      const smallOffset = mediumOffset - (mediumSlicesFinished * mediumSliceDuration)
+      createTimer('small', newCircleDurations.small, smallOffset)
     }
   
     function stopTimer() {
-        setTimerActive(false)
-        sizesArray.forEach((size: sizes) => {
-          d3.select(shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove()
-          clearInterval(timerRefs.current[size])
-        })
+        // setTimerActive(false)
+        // sizesArray.forEach((size: sizes) => {
+        //   d3.select(shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove()
+        //   clearInterval(timerRefs.current[size])
+        // })
     }
 
     function findTotalYearsAndDays(milliseconds: number) {
@@ -271,32 +283,20 @@ function Mementer(props: { shadowRoot: any }) {
       return ''
     }
   
-    function updateCircleDurations(newDuration: number) {
-      setCircleDurations({
-        small: newDuration / numberOfSlices.large / numberOfSlices.medium,
-        medium: newDuration / numberOfSlices.large,
-        large: newDuration
-      })
-    }
-  
     function updateSlices(size: sizes, slices: number) {
         stopTimer()
         numberOfSlices[size] = slices < 1 ? 1 : slices
-        updateCircleDurations(duration)
+        setCircleDurations(findNewCircleDurations(duration))
         createSlices(size)
     }
   
     function saveSliceText() {
-      if (timerActive) {
-        // save to active slice
-        sliceData[largeActiveSlice][mediumActiveSlice][smallActiveSlice] = newSliceText
-      } else {
-        // todo: add to selected slice
-      }
-    }
-
-    function formatDate(date: Date) {
-      return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+      // if (timerActive) {
+      //   // save to active slice
+      //   sliceData[largeActiveSlice][mediumActiveSlice][smallActiveSlice] = newSliceText
+      // } else {
+      //   // todo: add to selected slice
+      // }
     }
 
     function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
@@ -305,7 +305,6 @@ function Mementer(props: { shadowRoot: any }) {
       if (position === 'start') setStartDate(newDate)
       else setEndDate(newDate)
       shadowRoot!.getElementById(`${position}-date`).setDate(newDate)
-      updateCircleDurations(milliseconds)
       const start = position === 'start' ? newDate : startDate
       const end = position === 'end' ? newDate : endDate
       startTimer(start, end)
@@ -317,7 +316,6 @@ function Mementer(props: { shadowRoot: any }) {
       const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
       setYears(totalYears)
       setDays(totalDays)
-      updateCircleDurations(newDuration)
     }
 
     function changeDate(position: 'start' | 'end') {
@@ -325,15 +323,13 @@ function Mementer(props: { shadowRoot: any }) {
       if (position === 'start') {
         setStartDate(newDate)
         if (endDate) {
-          const newDuration = new Date(endDate).getTime() - new Date(newDate).getTime()
-          updateDuration(newDuration)
+          updateDuration(findDuration(newDate, endDate))
           startTimer(newDate, endDate)
         } else if (duration) updateOtherDate('end', newDate, duration)
       } else {
         setEndDate(newDate)
         if (startDate) {
-          const newDuration = new Date(newDate).getTime() - new Date(startDate).getTime()
-          updateDuration(newDuration)
+          updateDuration(findDuration(startDate, newDate))
           startTimer(startDate, newDate)
         } else if (duration) updateOtherDate('start', newDate, duration)
       }
@@ -382,6 +378,24 @@ function Mementer(props: { shadowRoot: any }) {
         }
       }
       return '∞  to  ∞'
+    }
+
+    function findMaxDate() {
+      if (endDate) {
+        const maxDate = new Date(endDate)
+        maxDate.setDate(maxDate.getDate() - 1)
+        return formatDate(maxDate)
+      }
+      return ''
+    }
+
+    function findMinDate() {
+      if (startDate) {
+        const minDate = new Date(startDate)
+        minDate.setDate(minDate.getDate() + 1)
+        return formatDate(minDate)
+      }
+      return ''
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -467,7 +481,7 @@ function Mementer(props: { shadowRoot: any }) {
             <div style="position: relative">
               <lit-flatpickr
                 id="start-date"
-                maxDate="${endDate}"
+                maxDate="${findMaxDate()}"
                 altFormat="F j, Y"
                 dateFormat="Y-m-d"
                 theme="material_orange"
@@ -536,7 +550,7 @@ function Mementer(props: { shadowRoot: any }) {
             <div style="position: relative">
               <lit-flatpickr
                 id="end-date"
-                minDate="${startDate}"
+                minDate="${findMinDate()}"
                 altFormat="F j, Y"
                 dateFormat="Y-m-d"
                 theme="material_orange"

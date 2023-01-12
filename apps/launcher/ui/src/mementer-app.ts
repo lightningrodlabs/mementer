@@ -47,21 +47,17 @@ function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
     const [loading, setLoading] = useState(true)
     const [beads, setBeads] = useState<any[]>([])
-    const [duration, setDuration] = useState(0)
-    const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
-    const [circleDurations, setCircleDurations] = useState({ large: 0, medium: 0, small: 0 })
-    const [sliceData] = useState<any>({ large: [], medium: [], small: [] })
     const [newBeadText, setNewBeadText] = useState('')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
+    const [duration, setDuration] = useState(0)
     const [durationModalOpen, setDurationModalOpen] = useState(false)
     const [years, setYears] = useState(0)
     const [days, setDays] = useState(0)
-    const [selectedSlices, setSelectedSlices] = useState({ large: 0, medium: 0, small: 0 })
-
+    const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
     const focusStateRef = useRef<focusStates>('default')
-    const selectedSlicesRef = useRef<any>({ large: 0, medium: 0, small: 0 })
-    const timerRefs = useRef<any>({})
+    const selectedSlices = useRef<any>({ large: 0, medium: 0, small: 0 })
+    const circleDurations = useRef<any>({ large: 0, medium: 0, small: 0 })
 
     async function connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
@@ -87,8 +83,8 @@ function Mementer(props: { shadowRoot: any }) {
 
     function fadeOutSelectedSlices() {
       sizesArray.forEach((size) => {
-        if (selectedSlicesRef.current[size]) {
-          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlicesRef.current[size]}`)
+        if (selectedSlices.current[size]) {
+          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`)
           d3.select(path).transition('fill').duration(300).style('fill', circleColors[size])
         }
       })
@@ -96,38 +92,37 @@ function Mementer(props: { shadowRoot: any }) {
 
     function fadeInSelectedSlices() {
       sizesArray.forEach((size) => {
-        if (selectedSlicesRef.current[size]) {
-          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlicesRef.current[size]}`)
+        if (selectedSlices.current[size]) {
+          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`)
           d3.select(path).transition('fill').duration(300).style('fill', colors.grey1)
         }
       })
     }
 
-    function findNewSelectedSlices(size: sizes, index: number) {
-      const newSelectedSlices = { ...selectedSlicesRef.current }
+    function selectSlice(size: sizes, index: number) {
+      const newSelectedSlices = { ...selectedSlices.current }
       if (size === 'large') {
         newSelectedSlices.large = index
-        const changed = selectedSlicesRef.current.large !== index
+        const changed = selectedSlices.current.large !== index
         if (changed) {
           newSelectedSlices.medium = 0
           newSelectedSlices.small = 0
         }
       }
       if (size === 'medium') {
-        newSelectedSlices.large = selectedSlicesRef.current.large || 1
+        newSelectedSlices.large = selectedSlices.current.large || 1
         newSelectedSlices.medium = index
-        const changed = selectedSlicesRef.current.medium !== index
+        const changed = selectedSlices.current.medium !== index
         if (changed) {
           newSelectedSlices.small = 0
         }
       }
       if (size === 'small') {
-        newSelectedSlices.large = selectedSlicesRef.current.large || 1
-        newSelectedSlices.medium = selectedSlicesRef.current.medium || 1
+        newSelectedSlices.large = selectedSlices.current.large || 1
+        newSelectedSlices.medium = selectedSlices.current.medium || 1
         newSelectedSlices.small = index
       }
-      selectedSlicesRef.current = newSelectedSlices
-      setSelectedSlices(newSelectedSlices)
+      selectedSlices.current = newSelectedSlices
     }
   
     function createSlices(size: sizes) {
@@ -148,12 +143,12 @@ function Mementer(props: { shadowRoot: any }) {
               d3.select(this).transition('fill').duration(300).style('fill', colors.grey1)
             })
             .on('mouseout', function (this: any) {
-              const selected = selectedSlicesRef.current[size] === i + 1
+              const selected = selectedSlices.current[size] === i + 1
               if (!selected) d3.select(this).transition('fill').duration(300).style('fill', circleColors[size])
             })
             .on('mousedown', () => {
               fadeOutSelectedSlices()
-              findNewSelectedSlices(size, i + 1)
+              selectSlice(size, i + 1)
               fadeInSelectedSlices()
             })
           // // create slice data
@@ -177,8 +172,7 @@ function Mementer(props: { shadowRoot: any }) {
         sizesArray.forEach((size: sizes) => transitionCircleSize(size))
         if (focus === 'default') {
           fadeOutSelectedSlices()
-          selectedSlicesRef.current = { large: 0, medium: 0, small: 0 }
-          setSelectedSlices({ large: 0, medium: 0, small: 0 })
+          selectedSlices.current = { large: 0, medium: 0, small: 0 }
         }
     }
   
@@ -242,10 +236,12 @@ function Mementer(props: { shadowRoot: any }) {
     }
 
     function startTimers(start: string, end: string) {
-      const newDuration = findDuration(start, end)
       // update circle durations
+      const newDuration = findDuration(start, end)
       const newCircleDurations = findNewCircleDurations(newDuration)
-      setCircleDurations(newCircleDurations)
+      circleDurations.current = newCircleDurations
+      // recreate slices with latest times
+      sizesArray.forEach((size) => createSlices(size))
       // calculate slice offsets and start timers
       const largeOffset = new Date().getTime() - new Date(start).getTime()
       createTimer('large', newCircleDurations.large, largeOffset)
@@ -258,15 +254,6 @@ function Mementer(props: { shadowRoot: any }) {
       const smallOffset = mediumOffset - (mediumSlicesFinished * mediumSliceDuration)
       createTimer('small', newCircleDurations.small, smallOffset)
     }
-  
-    // todo: revisit
-    function stopTimer() {
-        // setTimerActive(false)
-        // sizesArray.forEach((size: sizes) => {
-        //   d3.select(shadowRoot?.getElementById(`${size}-timer`)!).interrupt('time').remove()
-        //   clearInterval(timerRefs.current[size])
-        // })
-    }
 
     function findTotalYearsAndDays(milliseconds: number) {
       const day = 1000 * 60 * 60 * 24
@@ -278,7 +265,7 @@ function Mementer(props: { shadowRoot: any }) {
   
     function findCircleDurationText(size: sizes) {
       if (startDate && endDate) {
-        const { totalYears, totalDays } = findTotalYearsAndDays(circleDurations[size] / numberOfSlices[size])
+        const { totalYears, totalDays } = findTotalYearsAndDays(circleDurations.current[size] / numberOfSlices[size])
         if (totalYears || totalDays) {
           const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
           const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
@@ -289,27 +276,32 @@ function Mementer(props: { shadowRoot: any }) {
       return ''
     }
   
-    // todo: revisit
     function updateSlices(size: sizes, slices: number) {
-      stopTimer()
       numberOfSlices[size] = slices < 1 ? 1 : slices
-      setCircleDurations(findNewCircleDurations(duration))
-      createSlices(size)
+      startTimers(startDate, endDate)
     }
   
     function saveNewBead() {
       let timeStamp = new Date()
-      const { large, medium, small } = selectedSlices
+      const { large, medium, small } = selectedSlices.current
       if (large || medium || small) {
         // find start of selected slice
         const largeDuration = (duration / numberOfSlices.large) * large
-        const mediumDuration = (circleDurations.medium / numberOfSlices.medium) * medium
-        const smallDuration = (circleDurations.small / numberOfSlices.small) * medium
+        const mediumDuration = (circleDurations.current.medium / numberOfSlices.medium) * medium
+        const smallDuration = (circleDurations.current.small / numberOfSlices.small) * medium
         const durationFromStartDate = largeDuration + mediumDuration + smallDuration
         timeStamp = new Date(new Date(startDate).getTime() + durationFromStartDate)
       }
       const newBead = { id: uuidv4(), text: newBeadText, timeStamp, createdAt: new Date() }
       setBeads([...beads, newBead])
+      setNewBeadText('')
+      // todo: highlight bead slice
+      // sizesArray.forEach((size) => {
+      //   if (selectedSlices.current[size]) {
+      //     const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlices[size]}`)
+      //     d3.select(path).transition('fill').duration(300).style('fill', colors.green1)
+      //   }
+      // })
     }
 
     function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
@@ -367,30 +359,6 @@ function Mementer(props: { shadowRoot: any }) {
       const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
       const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
       return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
-    }
-
-    function findDates() {
-      if (startDate && endDate) {
-        const largeSliceDuration = circleDurations.large / numberOfSlices.large
-        const mediumSliceDuration = circleDurations.medium / numberOfSlices.medium
-        const smallSliceDuration = circleDurations.small / numberOfSlices.small
-        const largeStart = new Date(startDate).getTime() + (selectedSlices.large - 1) * largeSliceDuration
-        const mediumStart = largeStart + (selectedSlices.medium - 1) * mediumSliceDuration
-        const smallStart = mediumStart + (selectedSlices.small - 1) * smallSliceDuration
-        if (selectedSlices.small) {
-          const smallEnd = smallStart + smallSliceDuration
-          return `${formatDate(new Date(smallStart))}  to  ${formatDate(new Date(smallEnd))}`
-        }
-        if (selectedSlices.medium) {
-          const mediumEnd = mediumStart + mediumSliceDuration
-          return `${formatDate(new Date(mediumStart))}  to  ${formatDate(new Date(mediumEnd))}`
-        }
-        if (selectedSlices.large) {
-          const largeEnd = largeStart + largeSliceDuration
-          return `${formatDate(new Date(largeStart))}  to  ${formatDate(new Date(largeEnd))}`
-        }
-      }
-      return '∞  to  ∞'
     }
 
     function findMaxDate() {
@@ -651,7 +619,7 @@ function Mementer(props: { shadowRoot: any }) {
                   @click=${() => saveNewBead()}
                   class="button"
                 >
-                  Save bead
+                  Add new bead
                 </button>
               </div>
             `}
@@ -711,3 +679,27 @@ export class MementerApp extends ScopedElementsMixin(LitElement) {
 //     </button>
 //   </div>
 // </div>
+
+// function findDates() {
+//   if (startDate && endDate) {
+//     const largeSliceDuration = circleDurations.large / numberOfSlices.large
+//     const mediumSliceDuration = circleDurations.medium / numberOfSlices.medium
+//     const smallSliceDuration = circleDurations.small / numberOfSlices.small
+//     const largeStart = new Date(startDate).getTime() + (selectedSlices.large - 1) * largeSliceDuration
+//     const mediumStart = largeStart + (selectedSlices.medium - 1) * mediumSliceDuration
+//     const smallStart = mediumStart + (selectedSlices.small - 1) * smallSliceDuration
+//     if (selectedSlices.small) {
+//       const smallEnd = smallStart + smallSliceDuration
+//       return `${formatDate(new Date(smallStart))}  to  ${formatDate(new Date(smallEnd))}`
+//     }
+//     if (selectedSlices.medium) {
+//       const mediumEnd = mediumStart + mediumSliceDuration
+//       return `${formatDate(new Date(mediumStart))}  to  ${formatDate(new Date(mediumEnd))}`
+//     }
+//     if (selectedSlices.large) {
+//       const largeEnd = largeStart + largeSliceDuration
+//       return `${formatDate(new Date(largeStart))}  to  ${formatDate(new Date(largeEnd))}`
+//     }
+//   }
+//   return '∞  to  ∞'
+// }

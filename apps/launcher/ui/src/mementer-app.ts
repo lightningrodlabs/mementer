@@ -162,7 +162,7 @@ function Mementer(props: { shadowRoot: any }) {
           else startTimers(start, end)
         }
         // update selected slices
-        newSelectedSlices.large = selectedSlices.current.large || 1
+        newSelectedSlices.large = selectedSlices.current.large || currentLargeSlice || 1
         newSelectedSlices.medium = index
         const changed = selectedSlices.current.medium !== index
         if (changed) newSelectedSlices.small = 0
@@ -170,8 +170,9 @@ function Mementer(props: { shadowRoot: any }) {
 
       if (size === 'small') {
         // update selected slices
-        newSelectedSlices.large = selectedSlices.current.large || 1
-        newSelectedSlices.medium = selectedSlices.current.medium || 1
+        newSelectedSlices.large = selectedSlices.current.large || currentLargeSlice || 1
+        const outsideCurrentLargeSlice = newSelectedSlices.large !== currentLargeSlice
+        newSelectedSlices.medium = outsideCurrentLargeSlice && !selectedSlices.current.medium ? 1 : selectedSlices.current.medium || currentMediumSlice || 1
         newSelectedSlices.small = index
       }
 

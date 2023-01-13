@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 import { html, LitElement } from 'lit';
 import { component, useState, useRef, useEffect } from 'haunted';
 import { v4 as uuidv4 } from 'uuid';
@@ -58,6 +59,8 @@ function Mementer(props: { shadowRoot: any }) {
     const focusStateRef = useRef<focusStates>('default')
     const selectedSlices = useRef<any>({ large: 0, medium: 0, small: 0 })
     const circleDurations = useRef<any>({ large: 0, medium: 0, small: 0 })
+    const startDateRef = useRef('')
+    const endDateRef = useRef('')
 
     async function connectToHolochain() {
         const url = `ws://localhost:${process.env.HC_PORT}`
@@ -81,6 +84,26 @@ function Mementer(props: { shadowRoot: any }) {
         return d3.arc().outerRadius(outerRadius).innerRadius(0).startAngle(start * slice).endAngle(end * slice)
     }
 
+    function createStaticTimer(size: sizes) {
+      const group = d3.select(shadowRoot?.getElementById(`${size}-circle-group`)!)
+      const arc = d3.arc().outerRadius(circleSize).innerRadius(0)
+      group.select(`#${size}-timer`).remove()
+      group
+        .append('path')
+        .attr('id', `${size}-timer`)
+        .datum({ startAngle: 0, endAngle: Math.PI * 2 })
+        .attr('d', <any>arc)
+        .attr('pointer-events', 'none')
+        .attr('transform', `scale(${focusStateScales[focusStateRef.current][size] / 2})`)
+        .style('opacity', 0.5)
+        .style('fill', timerColors[size])
+    }
+
+    function removeTimer(size: sizes) {
+      const group = d3.select(shadowRoot?.getElementById(`${size}-circle-group`)!)
+      group.select(`#${size}-timer`).remove()
+    }
+
     function fadeOutSelectedSlices() {
       sizesArray.forEach((size) => {
         if (selectedSlices.current[size]) {
@@ -100,8 +123,29 @@ function Mementer(props: { shadowRoot: any }) {
     }
 
     function selectSlice(size: sizes, index: number) {
+      const start = startDateRef.current
+      const end = endDateRef.current
+      const now = new Date().getTime()
+      const timeSinceStart = now - new Date(start).getTime()
       const newSelectedSlices = { ...selectedSlices.current }
+      const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
+      const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
+      const currentLargeSlice = Math.floor(timeSinceStart / largeSliceDuration) + 1
+      const largeSliceOffset = (currentLargeSlice - 1) * largeSliceDuration
+      const currentMediumSlice = Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1
+
       if (size === 'large') {
+        // update timers
+        if (index < currentLargeSlice) {
+          createStaticTimer('medium')
+          createStaticTimer('small')
+        } else if (index > currentLargeSlice) {
+          removeTimer('medium')
+          removeTimer('small')
+        } else {
+          startTimers(start, end)
+        }
+        // update selected slices
         newSelectedSlices.large = index
         const changed = selectedSlices.current.large !== index
         if (changed) {
@@ -109,19 +153,28 @@ function Mementer(props: { shadowRoot: any }) {
           newSelectedSlices.small = 0
         }
       }
+
       if (size === 'medium') {
+        // update timers
+        if (currentLargeSlice === selectedSlices.current.large) {
+          if (index < currentMediumSlice) createStaticTimer('small')
+          else if (index > currentMediumSlice) removeTimer('small')
+          else startTimers(start, end)
+        }
+        // update selected slices
         newSelectedSlices.large = selectedSlices.current.large || 1
         newSelectedSlices.medium = index
         const changed = selectedSlices.current.medium !== index
-        if (changed) {
-          newSelectedSlices.small = 0
-        }
+        if (changed) newSelectedSlices.small = 0
       }
+
       if (size === 'small') {
+        // update selected slices
         newSelectedSlices.large = selectedSlices.current.large || 1
         newSelectedSlices.medium = selectedSlices.current.medium || 1
         newSelectedSlices.small = index
       }
+
       selectedSlices.current = newSelectedSlices
     }
   
@@ -170,10 +223,6 @@ function Mementer(props: { shadowRoot: any }) {
     function updateFocusState(focus: focusStates) {
         focusStateRef.current = focus
         sizesArray.forEach((size: sizes) => transitionCircleSize(size))
-        if (focus === 'default') {
-          fadeOutSelectedSlices()
-          selectedSlices.current = { large: 0, medium: 0, small: 0 }
-        }
     }
   
     function createCircle(svg: any, size: sizes) {
@@ -214,25 +263,25 @@ function Mementer(props: { shadowRoot: any }) {
         group.select(`#${size}-timer`).remove()
         // create new path
         group
-            .append('path')
-            .attr('id', `${size}-timer`)
-            .datum({ startAngle: 0, endAngle: currentAngle })
-            .attr('d', <any>arc)
-            .attr('pointer-events', 'none')
-            .attr('transform', `scale(${focusStateScales[focusStateRef.current][size] / 2})`)
-            .style('opacity', 0.5)
-            .style('fill', timerColors[size])
-            .transition('time')
-            .ease(d3.easeLinear)
-            .duration(circleDuration - offset)
-            .attrTween('d', (d: any) => {
-              const interpolate = d3.interpolate(currentAngle, Math.PI * 2)
-              return (t: number) => {
-                d.endAngle = interpolate(t)
-                return <any>arc(d)
-              }
-            })
-            .on('end', () => createTimer(size, circleDuration, 0, group))
+          .append('path')
+          .attr('id', `${size}-timer`)
+          .datum({ startAngle: 0, endAngle: currentAngle })
+          .attr('d', <any>arc)
+          .attr('pointer-events', 'none')
+          .attr('transform', `scale(${focusStateScales[focusStateRef.current][size] / 2})`)
+          .style('opacity', 0.5)
+          .style('fill', timerColors[size])
+          .transition('time')
+          .ease(d3.easeLinear)
+          .duration(circleDuration - offset)
+          .attrTween('d', (d: any) => {
+            const interpolate = d3.interpolate(currentAngle, Math.PI * 2)
+            return (t: number) => {
+              d.endAngle = interpolate(t)
+              return <any>arc(d)
+            }
+          })
+          .on('end', () => createTimer(size, circleDuration, 0, group))
     }
 
     function startTimers(start: string, end: string) {
@@ -307,8 +356,13 @@ function Mementer(props: { shadowRoot: any }) {
     function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
       const time = position === 'start' ? -milliseconds : milliseconds
       const newDate = formatDate(new Date(new Date(knownDate).getTime() + time))
-      if (position === 'start') setStartDate(newDate)
-      else setEndDate(newDate)
+      if (position === 'start') {
+        setStartDate(newDate)
+        startDateRef.current = newDate
+      } else {
+        setEndDate(newDate)
+        endDateRef.current = newDate
+      }
       shadowRoot!.getElementById(`${position}-date`).setDate(newDate)
       const start = position === 'start' ? newDate : startDate
       const end = position === 'end' ? newDate : endDate
@@ -327,12 +381,14 @@ function Mementer(props: { shadowRoot: any }) {
       const newDate = shadowRoot.querySelector(`#${position}-date`).getValue()
       if (position === 'start') {
         setStartDate(newDate)
+        startDateRef.current = newDate
         if (endDate) {
           updateDuration(findDuration(newDate, endDate))
           startTimers(newDate, endDate)
         } else if (duration) updateOtherDate('end', newDate, duration)
       } else {
         setEndDate(newDate)
+        endDateRef.current = newDate
         if (startDate) {
           updateDuration(findDuration(startDate, newDate))
           startTimers(startDate, newDate)

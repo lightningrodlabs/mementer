@@ -127,27 +127,16 @@ function Mementer(props: { shadowRoot: any }) {
       const end = endDateRef.current
       const now = new Date().getTime()
       const timeSinceStart = now - new Date(start).getTime()
-      const timeLeft = new Date(end).getTime() > new Date().getTime()
+      const finished = new Date(end).getTime() < now
+      const notStarted = new Date(start).getTime() > now
       const newSelectedSlices = { ...selectedSlices.current }
       const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
       const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
-      const currentLargeSlice = timeLeft ? Math.floor(timeSinceStart / largeSliceDuration) + 1 : 1
+      const currentLargeSlice = finished || notStarted ? 1 : Math.floor(timeSinceStart / largeSliceDuration) + 1
       const largeSliceOffset = (currentLargeSlice - 1) * largeSliceDuration
-      const currentMediumSlice = timeLeft ? Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1 : 1
+      const currentMediumSlice = finished || notStarted ? 1 : Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1
 
       if (size === 'large') {
-        // update timers
-        if (timeLeft) {
-          if (index < currentLargeSlice) {
-            createStaticTimer('medium')
-            createStaticTimer('small')
-          } else if (index > currentLargeSlice) {
-            removeTimer('medium')
-            removeTimer('small')
-          } else {
-            startTimers(start, end)
-          }
-        }
         // update selected slices
         newSelectedSlices.large = index
         const changed = selectedSlices.current.large !== index
@@ -155,20 +144,28 @@ function Mementer(props: { shadowRoot: any }) {
           newSelectedSlices.medium = 0
           newSelectedSlices.small = 0
         }
+        // update timers
+        if (finished || index < currentLargeSlice) {
+          createStaticTimer('medium')
+          createStaticTimer('small')
+        } else if (notStarted || index > currentLargeSlice) {
+          removeTimer('medium')
+          removeTimer('small')
+        } else startTimers(start, end)
       }
 
       if (size === 'medium') {
-        // update timers
-        if (timeLeft && currentLargeSlice === selectedSlices.current.large) {
-          if (index < currentMediumSlice) createStaticTimer('small')
-          else if (index > currentMediumSlice) removeTimer('small')
-          else startTimers(start, end)
-        }
         // update selected slices
         newSelectedSlices.large = selectedSlices.current.large || currentLargeSlice || 1
         newSelectedSlices.medium = index
         const changed = selectedSlices.current.medium !== index
         if (changed) newSelectedSlices.small = 0
+        // update timers
+        const beforeLargeSlice = newSelectedSlices.large < currentLargeSlice
+        const afterLargeSlice = newSelectedSlices.large > currentLargeSlice
+        if (finished || beforeLargeSlice || index < currentMediumSlice) createStaticTimer('small')
+        else if (notStarted || afterLargeSlice || index > currentMediumSlice) removeTimer('small')
+        else startTimers(start, end)
       }
 
       if (size === 'small') {
@@ -296,9 +293,13 @@ function Mementer(props: { shadowRoot: any }) {
       // recreate slices with latest times
       sizesArray.forEach((size) => createSlices(size))
       // calculate slice offsets and start timers
-      const timeLeft = new Date(end).getTime() > new Date().getTime()
-      if (timeLeft) {
-        const largeOffset = new Date().getTime() - new Date(start).getTime()
+      const now = new Date().getTime()
+      const finished = new Date(end).getTime() < now
+      const notStarted = new Date(start).getTime() > now
+      if (finished) sizesArray.forEach((size) => createStaticTimer(size))
+      else if (notStarted) sizesArray.forEach((size) => removeTimer(size))
+      else {
+        const largeOffset = now - new Date(start).getTime()
         createTimer('large', newCircleDurations.large, largeOffset)
         const largeSliceDuration = newCircleDurations.large / numberOfSlices.large
         const largeSlicesFinished = Math.floor(largeOffset / largeSliceDuration)
@@ -513,14 +514,24 @@ function Mementer(props: { shadowRoot: any }) {
           left: 320px;
         }
         .bead-card {
-          all: unset;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           width: 300px;
           border: 2px solid ${colors.grey1};
           border-radius: 20px;
           background-color: white;
           padding: 20px;
-          white-space: pre-wrap;
           margin-bottom: 20px;
+        }
+        .bead-card > p {
+          color: ${colors.grey2};
+          margin-bottom: 10px;
+        }
+        .bead-card > textarea {
+          all: unset;
+          white-space: pre-wrap;
+          width: 100%;
         }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
@@ -671,13 +682,14 @@ function Mementer(props: { shadowRoot: any }) {
           <div style='width: 300px; height: 100%; margin-right: 50px'>
             ${startDate && endDate && html`
               <div style='display: flex; flex-direction: column; align-items: center'>
-                <textarea
-                  class='bead-card'
-                  rows='14'
-                  .value=${newBeadText}
-                  @keyup=${(e: any) => setNewBeadText(e.target.value)}
-                  @change=${(e: any) => setNewBeadText(e.target.value)}
-                ></textarea>
+                <div class='bead-card'>
+                  <textarea
+                    rows='14'
+                    .value=${newBeadText}
+                    @keyup=${(e: any) => setNewBeadText(e.target.value)}
+                    @change=${(e: any) => setNewBeadText(e.target.value)}
+                  ></textarea>
+                </div>
                 <button
                   @click=${() => saveNewBead()}
                   class="button"
@@ -696,13 +708,15 @@ function Mementer(props: { shadowRoot: any }) {
           <div style='display: flex; flex-direction: column; align-items: center; width: 300px; height: 100%; margin-left: 50px'>
             ${beads.map((bead) => 
               html`
-                <textarea
-                  class='bead-card'
-                  rows='14'
-                  .value=${bead.text}
-                  @keyup=${(e: any) => setNewBeadText(e.target.value)}
-                  @change=${(e: any) => setNewBeadText(e.target.value)}
-                ></textarea>
+                <div class='bead-card'>
+                  <p>${formatDate(bead.timeStamp)}</p>
+                  <textarea
+                    rows='14'
+                    .value=${bead.text}
+                    @keyup=${(e: any) => setNewBeadText(e.target.value)}
+                    @change=${(e: any) => setNewBeadText(e.target.value)}
+                  ></textarea>
+                </div>
               `
             )}
             </div>

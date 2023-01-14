@@ -127,23 +127,26 @@ function Mementer(props: { shadowRoot: any }) {
       const end = endDateRef.current
       const now = new Date().getTime()
       const timeSinceStart = now - new Date(start).getTime()
+      const timeLeft = new Date(end).getTime() > new Date().getTime()
       const newSelectedSlices = { ...selectedSlices.current }
       const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
       const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
-      const currentLargeSlice = Math.floor(timeSinceStart / largeSliceDuration) + 1
+      const currentLargeSlice = timeLeft ? Math.floor(timeSinceStart / largeSliceDuration) + 1 : 1
       const largeSliceOffset = (currentLargeSlice - 1) * largeSliceDuration
-      const currentMediumSlice = Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1
+      const currentMediumSlice = timeLeft ? Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1 : 1
 
       if (size === 'large') {
         // update timers
-        if (index < currentLargeSlice) {
-          createStaticTimer('medium')
-          createStaticTimer('small')
-        } else if (index > currentLargeSlice) {
-          removeTimer('medium')
-          removeTimer('small')
-        } else {
-          startTimers(start, end)
+        if (timeLeft) {
+          if (index < currentLargeSlice) {
+            createStaticTimer('medium')
+            createStaticTimer('small')
+          } else if (index > currentLargeSlice) {
+            removeTimer('medium')
+            removeTimer('small')
+          } else {
+            startTimers(start, end)
+          }
         }
         // update selected slices
         newSelectedSlices.large = index
@@ -156,7 +159,7 @@ function Mementer(props: { shadowRoot: any }) {
 
       if (size === 'medium') {
         // update timers
-        if (currentLargeSlice === selectedSlices.current.large) {
+        if (timeLeft && currentLargeSlice === selectedSlices.current.large) {
           if (index < currentMediumSlice) createStaticTimer('small')
           else if (index > currentMediumSlice) removeTimer('small')
           else startTimers(start, end)
@@ -293,16 +296,19 @@ function Mementer(props: { shadowRoot: any }) {
       // recreate slices with latest times
       sizesArray.forEach((size) => createSlices(size))
       // calculate slice offsets and start timers
-      const largeOffset = new Date().getTime() - new Date(start).getTime()
-      createTimer('large', newCircleDurations.large, largeOffset)
-      const largeSliceDuration = newCircleDurations.large / numberOfSlices.large
-      const largeSlicesFinished = Math.floor(largeOffset / largeSliceDuration)
-      const mediumOffset = largeOffset - (largeSlicesFinished * largeSliceDuration)
-      createTimer('medium', newCircleDurations.medium, mediumOffset)
-      const mediumSliceDuration = newCircleDurations.medium / numberOfSlices.medium
-      const mediumSlicesFinished = Math.floor(mediumOffset / mediumSliceDuration)
-      const smallOffset = mediumOffset - (mediumSlicesFinished * mediumSliceDuration)
-      createTimer('small', newCircleDurations.small, smallOffset)
+      const timeLeft = new Date(end).getTime() > new Date().getTime()
+      if (timeLeft) {
+        const largeOffset = new Date().getTime() - new Date(start).getTime()
+        createTimer('large', newCircleDurations.large, largeOffset)
+        const largeSliceDuration = newCircleDurations.large / numberOfSlices.large
+        const largeSlicesFinished = Math.floor(largeOffset / largeSliceDuration)
+        const mediumOffset = largeOffset - (largeSlicesFinished * largeSliceDuration)
+        createTimer('medium', newCircleDurations.medium, mediumOffset)
+        const mediumSliceDuration = newCircleDurations.medium / numberOfSlices.medium
+        const mediumSlicesFinished = Math.floor(mediumOffset / mediumSliceDuration)
+        const smallOffset = mediumOffset - (mediumSlicesFinished * mediumSliceDuration)
+        createTimer('small', newCircleDurations.small, smallOffset)
+      }
     }
 
     function findTotalYearsAndDays(milliseconds: number) {

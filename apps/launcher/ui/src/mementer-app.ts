@@ -250,6 +250,26 @@ function Mementer(props: { shadowRoot: any }) {
       return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 
+    function findSlicesFromDate(date: Date) {
+      const startTime = new Date(startDateRef.current).getTime()
+      const beadTime = new Date(date).getTime()
+      const timeSinceStart = beadTime - startTime
+      const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
+      const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
+      const smallSliceDuration = circleDurations.current.small / numberOfSlices.small
+      const largeSlice = Math.floor(timeSinceStart / largeSliceDuration) + 1
+      const largeSliceOffset = (largeSlice - 1) * largeSliceDuration
+      const mediumSlice = Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1
+      const mediumSliceOffset = ((largeSlice - 1) * largeSliceDuration) + ((mediumSlice - 1) * mediumSliceDuration)
+      const smallSlice = Math.floor((timeSinceStart - mediumSliceOffset) / smallSliceDuration) + 1
+      return { large: largeSlice, medium: mediumSlice, small: smallSlice }
+    }
+
+    function beadSlicesText(date: Date) {
+      const { large, medium, small } = findSlicesFromDate(date)
+      return `L${large}-M${medium}-S${small}`
+    }
+
     function findNewCircleDurations(newDuration: number) {
       return {
         small: newDuration / numberOfSlices.large / numberOfSlices.medium,
@@ -341,7 +361,8 @@ function Mementer(props: { shadowRoot: any }) {
   
     function updateSlices(size: sizes, slices: number) {
       numberOfSlices[size] = slices < 1 ? 1 : slices
-      startTimers(startDate, endDate)
+      if (startDate && endDate) startTimers(startDate, endDate)
+      else sizesArray.forEach((s) => createSlices(s))
     }
   
     function saveNewBead() {
@@ -349,9 +370,12 @@ function Mementer(props: { shadowRoot: any }) {
       const { large, medium, small } = selectedSlices.current
       if (large || medium || small) {
         // find start of selected slice
-        const largeDuration = (duration / numberOfSlices.large) * large
-        const mediumDuration = (circleDurations.current.medium / numberOfSlices.medium) * medium
-        const smallDuration = (circleDurations.current.small / numberOfSlices.small) * medium
+        const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
+        const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
+        const smallSliceDuration = circleDurations.current.small / numberOfSlices.small
+        const largeDuration = largeSliceDuration * (large - 1)
+        const mediumDuration = mediumSliceDuration * (medium ? medium - 1 : 0)
+        const smallDuration = smallSliceDuration * (small ? small - 1 : 0)
         const durationFromStartDate = largeDuration + mediumDuration + smallDuration
         timeStamp = new Date(new Date(startDate).getTime() + durationFromStartDate)
       }
@@ -715,7 +739,7 @@ function Mementer(props: { shadowRoot: any }) {
             ${beads.map((bead) => 
               html`
                 <div class='bead-card'>
-                  <p>${formatDate(bead.timeStamp)}</p>
+                  <p>${formatDate(bead.timeStamp)} | ${beadSlicesText(bead.timeStamp)}</p>
                   <textarea
                     rows='14'
                     .value=${bead.text}

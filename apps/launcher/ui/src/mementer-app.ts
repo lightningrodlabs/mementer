@@ -109,8 +109,8 @@ function Mementer(props: { shadowRoot: any }) {
     function fadeOutSelectedSlices() {
       sizesArray.forEach((size) => {
         if (selectedSlices.current[size]) {
-          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`)
-          d3.select(path).transition('fill').duration(300).style('fill', circleColors[size])
+          const path = d3.select(shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`))
+          if (!path.classed('has-content')) path.transition('fill').duration(300).style('fill', circleColors[size])
         }
       })
     }
@@ -118,8 +118,8 @@ function Mementer(props: { shadowRoot: any }) {
     function fadeInSelectedSlices() {
       sizesArray.forEach((size) => {
         if (selectedSlices.current[size]) {
-          const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`)
-          d3.select(path).transition('fill').duration(300).style('fill', colors.grey1)
+          const path = d3.select(shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`))
+          if (!path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.grey1)
         }
       })
     }
@@ -142,11 +142,11 @@ function Mementer(props: { shadowRoot: any }) {
       if (size === 'large') {
         // update selected slices
         newSelectedSlices.large = index
-        const changed = selectedSlices.current.large !== index
-        if (changed) {
-          newSelectedSlices.medium = 0
-          newSelectedSlices.small = 0
-        }
+        newSelectedSlices.medium = 0
+        newSelectedSlices.small = 0
+        selectedSlices.current = newSelectedSlices
+        createSlices('medium')
+        createSlices('small')
         // update timers
         if (start && end) {
           if (finished || index < currentLargeSlice) {
@@ -163,8 +163,9 @@ function Mementer(props: { shadowRoot: any }) {
         // update selected slices
         newSelectedSlices.large = selectedSlices.current.large || currentLargeSlice || 1
         newSelectedSlices.medium = index
-        const changed = selectedSlices.current.medium !== index
-        if (changed) newSelectedSlices.small = 0
+        newSelectedSlices.small = 0
+        selectedSlices.current = newSelectedSlices
+        createSlices('small')
         // update timers
         const beforeLargeSlice = newSelectedSlices.large < currentLargeSlice
         const afterLargeSlice = newSelectedSlices.large > currentLargeSlice
@@ -181,9 +182,9 @@ function Mementer(props: { shadowRoot: any }) {
         const outsideCurrentLargeSlice = newSelectedSlices.large !== currentLargeSlice
         newSelectedSlices.medium = outsideCurrentLargeSlice && !selectedSlices.current.medium ? 1 : selectedSlices.current.medium || currentMediumSlice || 1
         newSelectedSlices.small = index
+        selectedSlices.current = newSelectedSlices
       }
 
-      selectedSlices.current = newSelectedSlices
       // find selected beads
       const startTime = new Date(start).getTime()
       const { large, medium, small } = newSelectedSlices
@@ -195,6 +196,37 @@ function Mementer(props: { shadowRoot: any }) {
         return beadTime >= selectedSliceStart && beadTime < selectedSliceEnd
       }))
     }
+
+    function sliceHasContent(size: sizes, index: number) {
+      // calculate slice time range
+      let sliceStart = 0
+      let sliceEnd = 0
+      const startTime = new Date(startDateRef.current).getTime()
+      const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
+      const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
+      const smallSliceDuration = circleDurations.current.small / numberOfSlices.small
+      const { large, medium } = selectedSlices.current
+      const largeOffset = (large ? large - 1 : 0) * largeSliceDuration
+      const mediumOffset = (medium ? medium - 1 : 0) * mediumSliceDuration
+      if (size === 'large') {
+        sliceStart = startTime + (largeSliceDuration * index)
+        sliceEnd = sliceStart + largeSliceDuration
+      }
+      if (size === 'medium') {
+        sliceStart = startTime + largeOffset + (mediumSliceDuration * index)
+        sliceEnd = sliceStart + mediumSliceDuration
+      }
+      if (size === 'small') {
+        sliceStart = startTime + largeOffset + mediumOffset + (smallSliceDuration * index)
+        sliceEnd = sliceStart + smallSliceDuration
+      }
+      // search for beads within slice time range
+      const match = beads.current.find((bead) => {
+        const beadTime = new Date(bead.timeStamp).getTime()
+        return beadTime >= sliceStart && beadTime < sliceEnd
+      })
+      return !!match
+    }
   
     function createSlices(size: sizes) {
         const group = d3.select(shadowRoot?.getElementById(`${size}-circle-group`)!)
@@ -203,27 +235,29 @@ function Mementer(props: { shadowRoot: any }) {
         // create new slices
         for (let i = 0; i < numberOfSlices[size]; i += 1) {
           const arc = findArc(size, i, i + 1)
+          const hasContent = sliceHasContent(size, i)
           group
             .append('path')
             .attr('id', `${size}-arc-${i + 1}`)
             .classed('arc', true)
+            .classed('has-content', hasContent)
             .attr('d', <any>arc)
-            .style('fill', circleColors[size])
+            .style('fill', hasContent ? colors.green1 : circleColors[size])
             .style('stroke', 'black')
             .on('mouseover', function (this: any) {
-              d3.select(this).transition('fill').duration(300).style('fill', colors.grey1)
+              const path = d3.select(this)
+              if (!path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.grey1)
             })
             .on('mouseout', function (this: any) {
+              const path = d3.select(this)
               const selected = selectedSlices.current[size] === i + 1
-              if (!selected) d3.select(this).transition('fill').duration(300).style('fill', circleColors[size])
+              if (!selected && !path.classed('has-content')) path.transition('fill').duration(300).style('fill', circleColors[size])
             })
             .on('mousedown', () => {
               fadeOutSelectedSlices()
               selectSlice(size, i + 1)
               fadeInSelectedSlices()
             })
-          // // create slice data
-          // sliceData[size][i] = ''
         }
     }
   
@@ -323,14 +357,10 @@ function Mementer(props: { shadowRoot: any }) {
     }
 
     function startTimers(start: string, end: string) {
-      // reset selected slices
-      selectedSlices.current = { large: 0, medium: 0, small: 0 }
       // update circle durations
       const newDuration = findDuration(start, end)
       const newCircleDurations = findNewCircleDurations(newDuration)
       circleDurations.current = newCircleDurations
-      // recreate slices with latest times
-      sizesArray.forEach((size) => createSlices(size))
       // calculate slice offsets and start timers
       const now = new Date().getTime()
       const finished = new Date(end).getTime() < now
@@ -374,6 +404,7 @@ function Mementer(props: { shadowRoot: any }) {
   
     function updateSlices(size: sizes, slices: number) {
       numberOfSlices[size] = slices < 1 ? 1 : slices
+      selectedSlices.current = { large: 0, medium: 0, small: 0 }
       if (startDate && endDate) startTimers(startDate, endDate)
       else sizesArray.forEach((s) => createSlices(s))
     }
@@ -381,7 +412,8 @@ function Mementer(props: { shadowRoot: any }) {
     function saveNewBead() {
       let timeStamp = new Date()
       const { large, medium, small } = selectedSlices.current
-      if (large || medium || small) {
+      const selectedSlice = large || medium || small
+      if (selectedSlice) {
         // find start of selected slice
         const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
         const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
@@ -394,14 +426,14 @@ function Mementer(props: { shadowRoot: any }) {
       }
       const newBead = { id: uuidv4(), text: newBeadText, timeStamp, createdAt: new Date() }
       beads.current.push(newBead)
+      if (selectedSlice) setSelectedBeads([...selectedBeads, newBead])
       setNewBeadText('')
-      // todo: highlight bead slice
-      // sizesArray.forEach((size) => {
-      //   if (selectedSlices.current[size]) {
-      //     const path = shadowRoot?.getElementById(`${size}-arc-${selectedSlices[size]}`)
-      //     d3.select(path).transition('fill').duration(300).style('fill', colors.green1)
-      //   }
-      // })
+      // highlight bead slices
+      const highlightedSlices = selectedSlice ? selectedSlices.current : findSlicesFromDate(new Date())
+      sizesArray.forEach((size) => {
+        const path = shadowRoot?.getElementById(`${size}-arc-${highlightedSlices[size]}`)
+        if (path) d3.select(path).classed('has-content', true).transition('fill').duration(300).style('fill', colors.green1)
+      })
     }
 
     function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
@@ -417,6 +449,8 @@ function Mementer(props: { shadowRoot: any }) {
       shadowRoot!.getElementById(`${position}-date`).setDate(newDate)
       const start = position === 'start' ? newDate : startDate
       const end = position === 'end' ? newDate : endDate
+      selectedSlices.current = { large: 0, medium: 0, small: 0 }
+      sizesArray.forEach((size) => createSlices(size))
       startTimers(start, end)
     }
 
@@ -435,6 +469,8 @@ function Mementer(props: { shadowRoot: any }) {
         startDateRef.current = newDate
         if (endDate) {
           updateDuration(findDuration(newDate, endDate))
+          selectedSlices.current = { large: 0, medium: 0, small: 0 }
+          sizesArray.forEach((size) => createSlices(size))
           startTimers(newDate, endDate)
         } else if (duration) updateOtherDate('end', newDate, duration)
       } else {
@@ -442,6 +478,8 @@ function Mementer(props: { shadowRoot: any }) {
         endDateRef.current = newDate
         if (startDate) {
           updateDuration(findDuration(startDate, newDate))
+          selectedSlices.current = { large: 0, medium: 0, small: 0 }
+          sizesArray.forEach((size) => createSlices(size))
           startTimers(startDate, newDate)
         } else if (duration) updateOtherDate('start', newDate, duration)
       }

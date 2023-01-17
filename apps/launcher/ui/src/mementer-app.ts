@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable no-use-before-define */
 import { html, LitElement } from 'lit';
 import { component, useState, useRef, useEffect } from 'haunted';
@@ -47,7 +48,7 @@ const focusStateScales = {
 function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
     const [loading, setLoading] = useState(true)
-    const [beads, setBeads] = useState<any[]>([])
+    const [selectedBeads, setSelectedBeads] = useState<any[]>([])
     const [newBeadText, setNewBeadText] = useState('')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
@@ -56,6 +57,7 @@ function Mementer(props: { shadowRoot: any }) {
     const [years, setYears] = useState(0)
     const [days, setDays] = useState(0)
     const [numberOfSlices] = useState({ large: 24, medium: 12, small: 6 })
+    const beads = useRef<any[]>([])
     const focusStateRef = useRef<focusStates>('default')
     const selectedSlices = useRef<any>({ large: 0, medium: 0, small: 0 })
     const circleDurations = useRef<any>({ large: 0, medium: 0, small: 0 })
@@ -132,6 +134,7 @@ function Mementer(props: { shadowRoot: any }) {
       const newSelectedSlices = { ...selectedSlices.current }
       const largeSliceDuration = circleDurations.current.large / numberOfSlices.large
       const mediumSliceDuration = circleDurations.current.medium / numberOfSlices.medium
+      const smallSliceDuration = circleDurations.current.small / numberOfSlices.small
       const currentLargeSlice = finished || notStarted ? 1 : Math.floor(timeSinceStart / largeSliceDuration) + 1
       const largeSliceOffset = (currentLargeSlice - 1) * largeSliceDuration
       const currentMediumSlice = finished || notStarted ? 1 : Math.floor((timeSinceStart - largeSliceOffset) / mediumSliceDuration) + 1
@@ -181,6 +184,16 @@ function Mementer(props: { shadowRoot: any }) {
       }
 
       selectedSlices.current = newSelectedSlices
+      // find selected beads
+      const startTime = new Date(start).getTime()
+      const { large, medium, small } = newSelectedSlices
+      const selectedSliceStart = startTime + ((large ? large - 1 : 0) * largeSliceDuration) + ((medium ? medium - 1 : 0) * mediumSliceDuration) + ((small ? small - 1 : 0) * smallSliceDuration)
+      const length = small ? smallSliceDuration : medium ? mediumSliceDuration : largeSliceDuration
+      const selectedSliceEnd = selectedSliceStart + length
+      setSelectedBeads(beads.current.filter((bead) => {
+        const beadTime = new Date(bead.timeStamp).getTime()
+        return beadTime >= selectedSliceStart && beadTime < selectedSliceEnd
+      }))
     }
   
     function createSlices(size: sizes) {
@@ -380,7 +393,7 @@ function Mementer(props: { shadowRoot: any }) {
         timeStamp = new Date(new Date(startDate).getTime() + durationFromStartDate)
       }
       const newBead = { id: uuidv4(), text: newBeadText, timeStamp, createdAt: new Date() }
-      setBeads([...beads, newBead])
+      beads.current.push(newBead)
       setNewBeadText('')
       // todo: highlight bead slice
       // sizesArray.forEach((size) => {
@@ -736,7 +749,7 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
 
           <div style='display: flex; flex-direction: column; align-items: center; width: 300px; height: 100%; margin-left: 50px'>
-            ${beads.map((bead) => 
+            ${selectedBeads.map((bead) => 
               html`
                 <div class='bead-card'>
                   <p>${formatDate(bead.timeStamp)} | ${beadSlicesText(bead.timeStamp)}</p>

@@ -145,13 +145,15 @@ function Mementer(props: { shadowRoot: any }) {
           newSelectedSlices.small = 0
         }
         // update timers
-        if (finished || index < currentLargeSlice) {
-          createStaticTimer('medium')
-          createStaticTimer('small')
-        } else if (notStarted || index > currentLargeSlice) {
-          removeTimer('medium')
-          removeTimer('small')
-        } else startTimers(start, end)
+        if (start && end) {
+          if (finished || index < currentLargeSlice) {
+            createStaticTimer('medium')
+            createStaticTimer('small')
+          } else if (notStarted || index > currentLargeSlice) {
+            removeTimer('medium')
+            removeTimer('small')
+          } else startTimers(start, end)
+        }
       }
 
       if (size === 'medium') {
@@ -163,9 +165,11 @@ function Mementer(props: { shadowRoot: any }) {
         // update timers
         const beforeLargeSlice = newSelectedSlices.large < currentLargeSlice
         const afterLargeSlice = newSelectedSlices.large > currentLargeSlice
-        if (finished || beforeLargeSlice || index < currentMediumSlice) createStaticTimer('small')
-        else if (notStarted || afterLargeSlice || index > currentMediumSlice) removeTimer('small')
-        else startTimers(start, end)
+        if (start && end) {
+          if (finished || beforeLargeSlice || (index < currentMediumSlice && !afterLargeSlice)) createStaticTimer('small')
+          else if (notStarted || afterLargeSlice || index > currentMediumSlice) removeTimer('small')
+          else startTimers(start, end)
+        }
       }
 
       if (size === 'small') {
@@ -286,6 +290,8 @@ function Mementer(props: { shadowRoot: any }) {
     }
 
     function startTimers(start: string, end: string) {
+      // reset selected slices
+      selectedSlices.current = { large: 0, medium: 0, small: 0 }
       // update circle durations
       const newDuration = findDuration(start, end)
       const newCircleDurations = findNewCircleDurations(newDuration)

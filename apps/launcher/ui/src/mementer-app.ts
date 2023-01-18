@@ -110,7 +110,8 @@ function Mementer(props: { shadowRoot: any }) {
       sizesArray.forEach((size) => {
         if (selectedSlices.current[size]) {
           const path = d3.select(shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`))
-          if (!path.classed('has-content')) path.transition('fill').duration(300).style('fill', circleColors[size])
+          if (path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.green1)
+          else path.transition('fill').duration(300).style('fill', circleColors[size])
         }
       })
     }
@@ -119,7 +120,8 @@ function Mementer(props: { shadowRoot: any }) {
       sizesArray.forEach((size) => {
         if (selectedSlices.current[size]) {
           const path = d3.select(shadowRoot?.getElementById(`${size}-arc-${selectedSlices.current[size]}`))
-          if (!path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.grey1)
+          if (path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.green2)
+          else path.transition('fill').duration(300).style('fill', colors.grey1)
         }
       })
     }
@@ -246,12 +248,16 @@ function Mementer(props: { shadowRoot: any }) {
             .style('stroke', 'black')
             .on('mouseover', function (this: any) {
               const path = d3.select(this)
-              if (!path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.grey1)
+              if (path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.green2)
+              else path.transition('fill').duration(300).style('fill', colors.grey1)
             })
             .on('mouseout', function (this: any) {
               const path = d3.select(this)
               const selected = selectedSlices.current[size] === i + 1
-              if (!selected && !path.classed('has-content')) path.transition('fill').duration(300).style('fill', circleColors[size])
+              if (!selected) {
+                if (path.classed('has-content')) path.transition('fill').duration(300).style('fill', colors.green1)
+                else path.transition('fill').duration(300).style('fill', circleColors[size])
+              }
             })
             .on('mousedown', () => {
               fadeOutSelectedSlices()
@@ -405,8 +411,8 @@ function Mementer(props: { shadowRoot: any }) {
     function updateSlices(size: sizes, slices: number) {
       numberOfSlices[size] = slices < 1 ? 1 : slices
       selectedSlices.current = { large: 0, medium: 0, small: 0 }
+      sizesArray.forEach((s) => createSlices(s))
       if (startDate && endDate) startTimers(startDate, endDate)
-      else sizesArray.forEach((s) => createSlices(s))
     }
   
     function saveNewBead() {

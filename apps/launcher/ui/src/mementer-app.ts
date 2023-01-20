@@ -571,6 +571,10 @@ function Mementer(props: { shadowRoot: any }) {
     `
     return html`
       <style>
+        * {
+          -webkit-box-sizing: border-box;
+          -moz-box-sizing: border-box;
+        }
         p, h3 { margin: 0 }
         .button {
           all: unset;
@@ -616,8 +620,8 @@ function Mementer(props: { shadowRoot: any }) {
           display: flex;
           flex-direction: column;
           align-items: center;
-          width: 296px;
-          height: 296px;
+          width: 340px;
+          height: 340px;
           border: 2px solid ${colors.grey1};
           border-radius: 20px;
           background-color: white;
@@ -650,12 +654,27 @@ function Mementer(props: { shadowRoot: any }) {
           left: calc(50% - 10px);
           top: 3px;
         }
+        .new-bead-container {
+          width: 340px;
+          height: 100%;
+          margin-right: 50px;
+          display: flex;
+          align-items: center;
+        }
+        .selected-beads {
+          display: flex;
+          flex-direction: column;
+          width: 340px;
+          height: 700px;
+          margin-left: 50px;
+          overflow: scroll;
+        }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
-        <h1>The Mementer: The Chronogram of Life</h1>
+        <h1 style="margin-bottom: 50px">The Mementer: The Chronogram of Life</h1>
         
-        <div style='display: flex; width: 1400px'>
-          <div style='width: 300px; height: 100%; margin-right: 50px'>
+        <div style='display: flex; width: 1480px'>
+          <div class="new-bead-container">
             ${startDate && endDate && html`
               <div style='display: flex; flex-direction: column; align-items: center'>
                 <div class='bead-card'>
@@ -681,7 +700,7 @@ function Mementer(props: { shadowRoot: any }) {
             <div style='margin-bottom: 20px' id='canvas'></div>
           </div>
 
-          <div style='display: flex; flex-direction: column; align-items: center; width: 300px; height: 100%; margin-left: 50px'>
+          <div class="selected-beads">
             ${selectedBeads.map((bead) => 
               html`
                 <div class='bead-card'>

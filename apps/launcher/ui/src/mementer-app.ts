@@ -26,7 +26,9 @@ const colors = {
   green1: '#a8ed64',
   green2: '#8cd446',
   buttonBlue: '#8bc8ff',
-  buttonRed: '#ff8b8b'
+  buttonRed: '#ff8b8b',
+  gold: '#f4c200',
+  greyGold: '#e1d7b0'
 }
 const circleColors = {
     large: colors.grey2,
@@ -530,6 +532,16 @@ function Mementer(props: { shadowRoot: any }) {
       return ''
     }
 
+    function elapsedTimePercentage() {
+      if (startDateRef.current && endDateRef.current) {
+        const startTime = new Date(startDateRef.current).getTime()
+        const now = new Date().getTime()
+        const percenatge = (100 / duration) * (now - startTime)
+        return percenatge > 100 ? 100 : percenatge
+      }
+      return 0
+    }
+
     useEffect(() => connectToHolochain(), [])
 
     useEffect(() => {
@@ -604,7 +616,8 @@ function Mementer(props: { shadowRoot: any }) {
           display: flex;
           flex-direction: column;
           align-items: center;
-          width: 300px;
+          width: 296px;
+          height: 296px;
           border: 2px solid ${colors.grey1};
           border-radius: 20px;
           background-color: white;
@@ -620,9 +633,75 @@ function Mementer(props: { shadowRoot: any }) {
           white-space: pre-wrap;
           width: 100%;
         }
+        .duration-bar {
+          width: 700px;
+          height: 25px;
+          background-color: ${colors.greyGold};
+          margin-bottom: 20px;
+          position: relative;
+        }
+        .elapsed-time {
+          height: 25px;
+          background-color: ${colors.gold};
+        }
+        .elapsed-percentage {
+          width: 20px;
+          position: absolute;
+          left: calc(50% - 10px);
+          top: 3px;
+        }
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
         <h1>The Mementer: The Chronogram of Life</h1>
+        
+        <div style='display: flex; width: 1400px'>
+          <div style='width: 300px; height: 100%; margin-right: 50px'>
+            ${startDate && endDate && html`
+              <div style='display: flex; flex-direction: column; align-items: center'>
+                <div class='bead-card'>
+                  <textarea
+                    rows='14'
+                    .value=${newBeadText}
+                    @keyup=${(e: any) => setNewBeadText(e.target.value)}
+                    @change=${(e: any) => setNewBeadText(e.target.value)}
+                  ></textarea>
+                </div>
+                <button
+                  @click=${() => saveNewBead()}
+                  class="button"
+                >
+                  Add new bead
+                </button>
+              </div>
+            `}
+          </div>
+
+          <div style='position: relative'>
+            <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
+            <div style='margin-bottom: 20px' id='canvas'></div>
+          </div>
+
+          <div style='display: flex; flex-direction: column; align-items: center; width: 300px; height: 100%; margin-left: 50px'>
+            ${selectedBeads.map((bead) => 
+              html`
+                <div class='bead-card'>
+                  <p>${formatDate(bead.timeStamp)} | ${beadSlicesText(bead.timeStamp)}</p>
+                  <textarea
+                    rows='14'
+                    .value=${bead.text}
+                    @keyup=${(e: any) => setNewBeadText(e.target.value)}
+                    @change=${(e: any) => setNewBeadText(e.target.value)}
+                  ></textarea>
+                </div>
+              `
+            )}
+          </div>
+        </div>
+
+        <div class="duration-bar">
+          <div class="elapsed-time" style="width: ${7 * elapsedTimePercentage()}px"></div>
+          <p class="elapsed-percentage">${elapsedTimePercentage().toFixed(2)}%</p>
+        </div>
 
         <div style="width: 800px; display: flex; justify-content: space-between; margin-bottom: 40px">
           <div style="display: flex; flex-direction: column; align-items: center">
@@ -762,51 +841,6 @@ function Mementer(props: { shadowRoot: any }) {
             <p style="margin: 0">
               ${findCircleDurationText('small')}
             </p>
-          </div>
-        </div>
-        
-        <div style='display: flex; width: 1400px'>
-          <div style='width: 300px; height: 100%; margin-right: 50px'>
-            ${startDate && endDate && html`
-              <div style='display: flex; flex-direction: column; align-items: center'>
-                <div class='bead-card'>
-                  <textarea
-                    rows='14'
-                    .value=${newBeadText}
-                    @keyup=${(e: any) => setNewBeadText(e.target.value)}
-                    @change=${(e: any) => setNewBeadText(e.target.value)}
-                  ></textarea>
-                </div>
-                <button
-                  @click=${() => saveNewBead()}
-                  class="button"
-                >
-                  Add new bead
-                </button>
-              </div>
-            `}
-          </div>
-
-          <div style='position: relative'>
-            <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
-            <div style='margin-bottom: 20px' id='canvas'></div>
-          </div>
-
-          <div style='display: flex; flex-direction: column; align-items: center; width: 300px; height: 100%; margin-left: 50px'>
-            ${selectedBeads.map((bead) => 
-              html`
-                <div class='bead-card'>
-                  <p>${formatDate(bead.timeStamp)} | ${beadSlicesText(bead.timeStamp)}</p>
-                  <textarea
-                    rows='14'
-                    .value=${bead.text}
-                    @keyup=${(e: any) => setNewBeadText(e.target.value)}
-                    @change=${(e: any) => setNewBeadText(e.target.value)}
-                  ></textarea>
-                </div>
-              `
-            )}
-            </div>
           </div>
         </div>
         

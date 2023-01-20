@@ -638,7 +638,7 @@ function Mementer(props: { shadowRoot: any }) {
           width: 100%;
         }
         .duration-bar {
-          width: 700px;
+          width: 530px;
           height: 25px;
           background-color: ${colors.greyGold};
           margin-bottom: 20px;
@@ -717,16 +717,21 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
         </div>
 
-        <div class="duration-bar">
-          <div class="elapsed-time" style="width: ${7 * elapsedTimePercentage()}px"></div>
-          <p class="elapsed-percentage">${elapsedTimePercentage().toFixed(2)}%</p>
+        <div style="width: 700px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="width: 70px; height: 70px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
+            <img src='https://www.svgrepo.com/show/161947/letter-a-text-variant.svg' alt='alpha' class="gold" style="width: 70px; height: 70px" />
+          </div>
+          <div class="duration-bar">
+            <div class="elapsed-time" style="width: ${5.3 * elapsedTimePercentage()}px"></div>
+            <p class="elapsed-percentage">${elapsedTimePercentage().toFixed(2)}%</p>
+          </div>
+          <div style="width: 70px; height: 70px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
+            <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' class="gold" style="width: 70px; height: 70px" />
+          </div>
         </div>
 
         <div style="width: 700px; display: flex; justify-content: space-between; margin-bottom: 40px">
           <div style="display: flex; flex-direction: column">
-            <div style="width: 70px; height: 70px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
-              <img src='https://www.svgrepo.com/show/161947/letter-a-text-variant.svg' alt='alpha' class="gold" style="width: 70px; height: 70px" />
-            </div>
             <p style="margin-bottom: 20px">${startDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr
@@ -748,7 +753,6 @@ function Mementer(props: { shadowRoot: any }) {
             </div>
           </div>
           <div style="display: flex; flex-direction: column; align-items: center; position: relative">
-            <p style="height: 35px; margin: 25px 0; display: flex; justify-content: center; align-items: center">Duration</p>
             <p style="margin-bottom: 20px">${duration ? `${durationText(duration)}` : '∞'}</p>
             <button @click=${() => setDurationModalOpen(true)} class="button">
               ${duration ? 'Change' : 'Add'} duration
@@ -793,9 +797,6 @@ function Mementer(props: { shadowRoot: any }) {
             }
           </div>
           <div style="display: flex; flex-direction: column; align-items: end; position: relative">
-            <div style="width: 70px; height: 70px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
-              <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' class="gold" style="width: 70px; height: 70px" />
-            </div>
             <p style="margin-bottom: 20px">${endDate || '∞'}</p>
             <div style="position: relative">
               <lit-flatpickr

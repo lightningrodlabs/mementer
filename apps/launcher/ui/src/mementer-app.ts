@@ -47,7 +47,7 @@ export class MementerApp extends router(LitElement) {
       <nav-link href="/">Home</nav-link>
       <nav-link href="/game/123">Game</nav-link>
       <router-outlet active-route=${this.route}>
-        <home-page route="home"></home-page>
+        <home-page route="home" shadowRoot=${this.shadowRoot}></home-page>
         <the-mementer route="game" shadowRoot=${this.shadowRoot}></the-mementer>
       </router-outlet>
     `

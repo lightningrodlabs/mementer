@@ -1,12 +1,15 @@
 import { html } from 'lit';
 import { component, useState, useRef, useEffect } from 'haunted';
+import 'lit-flatpickr';
+import './settings-modal';
 
-function HomePage() {
+function HomePage(props: { shadowRoot: any }) {
+    const { shadowRoot } = props
     const [newMementerModalOpen, setNewMementerModalOpen] = useState(false)
-    const [title, setTitle] = useState('')
-    const [startDate, setStartDate] = useState('')
-    const [endDate, setEndDate] = useState('')
-    const [duration, setDuration] = useState(0)
+
+    function onSave(data: any) {
+        console.log('new mementer data: ', data)
+    }
 
     return html`
         <style>
@@ -14,9 +17,17 @@ function HomePage() {
                 -webkit-box-sizing: border-box;
                 -moz-box-sizing: border-box;
             }
-            .wrapper {
+            p {
+                margin: 0;
+            }
+            .row {
+                display: flex;
+            }
+            .column {
                 display: flex;
                 flex-direction: column;
+            }
+            .wrapper {
                 align-items: center;
                 width: 100%;
                 height: 100%;
@@ -34,60 +45,21 @@ function HomePage() {
                 padding: 0 20px;
                 color: white;
             }
-            .modal {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                position: absolute;
-                top: 200px;
-                background: white;
-                border-radius: 10px;
-                padding: 20px;
-                box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
-                width: 600px;
-                z-index: 5;
-            }
-            .close-button {
-                all: unset;
-                cursor: pointer;
-                position: absolute;
-                right: 10px;
-                top: 10px;
-                background-color: #eee;
-                border-radius: 50%;
-                width: 25px;
-                height: 25px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-            .input {
-                width: 100px;
-                height: 30px;
-                margin-left: 10px;
-            }
         </style>
-        <div class='wrapper'>
-            <h1>The Mementer</h1>
+        <div class='wrapper column'>
+            <h1 style='color: white'>The Mementer: The Chronogram of Life</h1>
             <button class='button' @click=${() => setNewMementerModalOpen(true)}>
-                Create a new Mementer
+                Create Mementer
             </button>
-            ${newMementerModalOpen ? (
-                html`
-                    <div class='modal'>
-                        <button class="close-button" @click=${() => setNewMementerModalOpen(false)}>X</button>
-                        <h1>Create a new Mementer</h1>
-                        <input
-                            class='input'
-                            type='text'
-                            .value=${title}
-                            @keyup=${(e: any) => setTitle(e.target.value)}
-                            @change=${(e: any) => setTitle(e.target.value)}
-                        >
-                    </div>
+            ${newMementerModalOpen
+                ? html`
+                    <settings-modal
+                        shadowRoot=${shadowRoot}
+                        .close=${() => setNewMementerModalOpen(false)}
+                        .onSave=${onSave}
+                    ></settings-modal>
                 `
-            ): ''}
-            
+                : ''}
         </div>
     `
 }

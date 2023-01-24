@@ -1,15 +1,62 @@
 import { html } from 'lit';
 import { component, useState, useRef, useEffect } from 'haunted';
 import 'lit-flatpickr';
+import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client';
+import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client';
+import MementerService from './mementer-service'
 import './settings-modal';
 
 function HomePage(props: { shadowRoot: any }) {
     const { shadowRoot } = props
+    const [loading, setLoading] = useState(false)
+    const [mementerService, setMementerService] = useState<any>(null)
+    const [mementers, setMementers] = useState<any[]>([])
     const [newMementerModalOpen, setNewMementerModalOpen] = useState(false)
+
+    async function connectToHolochain() {
+        const url = `ws://localhost:${process.env.HC_PORT}`
+        const adminWebsocket = await AdminWebsocket.connect(`ws://localhost:${process.env.ADMIN_PORT}`)
+        const appWebsocket = await AppWebsocket.connect(url)
+        const client = new HolochainClient(appWebsocket)
+        const appInfo = await appWebsocket.appInfo({ installed_app_id: 'mementer' })
+        const installedCells = appInfo.cell_data
+        const mementerCell = installedCells.find(c => c.role_id === 'mementer') as InstalledCell
+        const cellClient = new CellClient(client, mementerCell)
+        setMementerService(new MementerService(cellClient))
+        setLoading(false)
+    }
 
     function onSave(data: any) {
         console.log('new mementer data: ', data)
+        mementerService!
+            .createMementer(data)
+            .then((res: any) => console.log('new mementer res: ', res))
+            .catch((error: any) => console.log('new mementer error: ', error))
     }
+
+    useEffect(() => connectToHolochain(), [])
+
+    useEffect(() => {
+        if (mementerService) {
+            mementerService
+                .getMementers()
+                .then((res: any) => {
+                    console.log('getMementers res: ', res)
+                    setMementers(res)
+                })
+                .catch((error: any) => console.log(error))
+            // Promise.all([
+            //     mementerService.getUserDetails(mementerService.myAgentPubKey),
+            //     mementerService.getMementers(),
+            // ])
+            //     .then((data) => {
+            //         setUser(data[0])
+            //         setMementers(data[1])
+            //         setLoading(false)
+            //     })
+            //     .catch((error) => console.log(error))
+        }
+    }, [mementerService])
 
     return html`
         <style>

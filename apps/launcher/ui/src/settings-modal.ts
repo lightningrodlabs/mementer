@@ -31,6 +31,10 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 
+    function findDuration(start: string, end: string) {
+        return new Date(end).getTime() - new Date(start).getTime()
+    }
+
     function findMaxDate() {
         if (endDate) {
           const maxDate = new Date(endDate)
@@ -49,8 +53,65 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         return ''
     }
 
+    function totalYearsAndDays(milliseconds: number) {
+        const day = 1000 * 60 * 60 * 24
+        const year = day * 365
+        const totalYears = Math.floor(milliseconds / year)
+        const totalDays = Math.floor(milliseconds / day) - totalYears * 365
+        return { totalYears, totalDays }
+    }
+
+    function elapsedTimePercentage() {
+        if (startDate && endDate) {
+          const startTime = new Date(startDate).getTime()
+          const endTime = new Date(endDate).getTime()
+          const now = new Date().getTime()
+          if (startTime > now) return 0
+          if (endTime < now) return 100
+          return (100 / duration) * (now - startTime)
+        }
+        return 0
+    }
+
+    function durationText(): string {
+        if (duration) {
+            const { totalYears, totalDays } = totalYearsAndDays(duration)
+            const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
+            const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
+            return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
+        }
+        return '∞'
+    }
+
+    function sliceText(size: string) {
+        if (startDate && endDate) {
+            const largeSliceDuration = duration / largeSlices
+            const mediumSliceDuration = largeSliceDuration / mediumSlices
+            const smallSliceDuration = mediumSliceDuration / smallSlices
+            let sliceDuration = 0
+            if (size === 'large') sliceDuration = largeSliceDuration
+            if (size === 'medium') sliceDuration = mediumSliceDuration
+            if (size === 'small') sliceDuration = smallSliceDuration
+            const { totalYears, totalDays } = totalYearsAndDays(sliceDuration)
+            if (totalYears || totalDays) {
+                const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
+                const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
+                return `(${y}${totalYears && totalDays ? ', ' : ''}${d} / slice)`
+            }
+            return '(<1 day / slice)'
+        }
+        return ''
+    }
+
     function openDatePicker(position: 'start' | 'end') {
         shadowRoot!.getElementById(`${position}-date`).open()
+    }
+
+    function updateDuration(newDuration: number) {
+        setDuration(newDuration)
+        const { totalYears, totalDays } = totalYearsAndDays(newDuration)
+        setYears(totalYears)
+        setDays(totalDays)
     }
 
     function updateOtherDate(position: 'start' | 'end', knownDate: string, milliseconds: number) {
@@ -59,25 +120,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         if (position === 'start') setStartDate(newDate)
         else setEndDate(newDate)
         shadowRoot!.getElementById(`${position}-date`).setDate(newDate)
-    }
-
-    function findTotalYearsAndDays(milliseconds: number) {
-        const day = 1000 * 60 * 60 * 24
-        const year = day * 365
-        const totalYears = Math.floor(milliseconds / year)
-        const totalDays = Math.floor(milliseconds / day) - totalYears * 365
-        return { totalYears, totalDays }
-    }
-  
-    function updateDuration(newDuration: number) {
-        setDuration(newDuration)
-        const { totalYears, totalDays } = findTotalYearsAndDays(newDuration)
-        setYears(totalYears)
-        setDays(totalDays)
-    }
-
-    function findDuration(start: string, end: string) {
-        return new Date(end).getTime() - new Date(start).getTime()
     }
 
     function changeDate(position: 'start' | 'end') {
@@ -93,18 +135,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         }
     }
 
-    function elapsedTimePercentage() {
-        if (startDate && endDate) {
-          const startTime = new Date(startDate).getTime()
-          const endTime = new Date(endDate).getTime()
-          const now = new Date().getTime()
-          if (startTime > now) return 0
-          if (endTime < now) return 100
-          return (100 / duration) * (now - startTime)
-        }
-        return 0
-    }
-
     function changeDuration() {
         const day = 1000 * 60 * 60 * 24
         const year = day * 365
@@ -113,33 +143,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         if (startDate) updateOtherDate('end', startDate, newDuration)
         else if (endDate) updateOtherDate('start', endDate, newDuration)
         setDurationModalOpen(false)
-    }
-
-    function durationText(milliseconds: number): string {
-        const { totalYears, totalDays } = findTotalYearsAndDays(milliseconds)
-        const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
-        const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
-        return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
-    }
-
-    function findSliceText(size: string) {
-        if (startDate && endDate) {
-            const largeSliceDuration = duration / largeSlices
-            const mediumSliceDuration = largeSliceDuration / mediumSlices
-            const smallSliceDuration = mediumSliceDuration / smallSlices
-            let sliceDuration = 0
-            if (size === 'large') sliceDuration = largeSliceDuration
-            if (size === 'medium') sliceDuration = mediumSliceDuration
-            if (size === 'small') sliceDuration = smallSliceDuration
-            const { totalYears, totalDays } = findTotalYearsAndDays(sliceDuration)
-            if (totalYears || totalDays) {
-                const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
-                const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
-                return `(${y}${totalYears && totalDays ? ', ' : ''}${d} / slice)`
-            }
-            return '(<1 day / slice)'
-        }
-        return ''
     }
 
     function save() {
@@ -159,7 +162,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                 -webkit-box-sizing: border-box;
                 -moz-box-sizing: border-box;
             }
-            p, h2 {
+            p, h2, h3 {
                 margin: 0;
             }
             .modal {
@@ -228,7 +231,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                 width: 100%;
                 display: flex;
                 flex-direction: column;
-                margin-bottom: 40px;
+                margin-bottom: 50px;
             }
             .duration-header {
                 width: 100%;
@@ -267,8 +270,11 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                 align-items: center;
             }
             .duration-modal {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
                 position: absolute;
-                top: 316px;
+                top: 370px;
                 background: white;
                 border-radius: 10px;
                 padding: 20px;
@@ -343,45 +349,41 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                         </div>
                     </div>
                     <div style='display: flex; flex-direction: column; align-items: center'>
-                        <p style="margin-bottom: 15px">${duration ? `${durationText(duration)}` : '∞'}</p>
+                        <p style="margin-bottom: 15px">${durationText()}</p>
                         <button @click=${() => setDurationModalOpen(true)} class="button">
                             ${duration ? 'Change' : 'Add'} duration
                         </button>
                         ${durationModalOpen
                             ? html`
                                 <div class="duration-modal">
-                                    <div style="width: 100%; display: flex; justify-content: center; position: relative; margin-bottom: 20px">
                                     <button class="close-button" @click=${() => setDurationModalOpen(false)}>X</button>
-                                    <h3>Duration modal</h3>
-                                    </div>
-                                    <div style="display: flex; flex-direction: column; align-items: center">
+                                    <h3 style='margin-bottom: 30px'>Duration modal</h3>
                                     <div style="display: flex; align-items: center; margin-bottom: 20px">
                                         <p>Years</p>
                                         <input
-                                        type='number'
-                                        min='0'
-                                        .value=${years}
-                                        @keyup=${(e: any) => setYears(+e.target.value)}
-                                        @change=${(e: any) => setYears(+e.target.value)}
-                                        style="width: 100px; height: 30px; margin-left: 10px"
+                                            type='number'
+                                            min='0'
+                                            .value=${years}
+                                            @keyup=${(e: any) => setYears(+e.target.value)}
+                                            @change=${(e: any) => setYears(+e.target.value)}
+                                            style="width: 100px; height: 30px; margin-left: 10px"
                                         >
                                     </div>
-                                    <div style="display: flex; align-items: center; margin-bottom: 20px">
+                                    <div style="display: flex; align-items: center; margin-bottom: 30px">
                                         <p>Days</p>
                                         <input
-                                        type='number'
-                                        min='0'
-                                        .value=${days}
-                                        @keyup=${(e: any) => setDays(+e.target.value)}
-                                        @change=${(e: any) => setDays(+e.target.value)}
-                                        style="width: 100px; height: 30px; margin-left: 10px"
+                                            type='number'
+                                            min='0'
+                                            .value=${days}
+                                            @keyup=${(e: any) => setDays(+e.target.value)}
+                                            @change=${(e: any) => setDays(+e.target.value)}
+                                            style="width: 100px; height: 30px; margin-left: 10px"
                                         >
                                     </div>
                                     <button @click=${changeDuration} class="button">
                                         Save duration
                                     </button>
                                 </div>
-                            </div>
                             `
                         : ''
                         }
@@ -423,7 +425,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                             @change=${(e: any) => setLargeSlices(+e.target.value)}
                         >
                     </div>
-                    <p>${findSliceText('large')}</p>
+                    <p>${sliceText('large')}</p>
                 </div>
                 <div class='slice-item'>
                     <div class='slice-input'>
@@ -437,7 +439,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                             @change=${(e: any) => setMediumSlices(+e.target.value)}
                         >
                     </div>
-                    <p>${findSliceText('medium')}</p>
+                    <p>${sliceText('medium')}</p>
                 </div>
                 <div class='slice-item'>
                     <div class='slice-input'>
@@ -451,7 +453,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                             @change=${(e: any) => setSmallSlices(+e.target.value)}
                         >
                     </div>
-                    <p>${findSliceText('small')}</p>
+                    <p>${sliceText('small')}</p>
                 </div>
             </div>
             

@@ -1,12 +1,16 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-use-before-define */
-import { html } from 'lit';
-import { component, useState, useRef, useEffect } from 'haunted';
-import { v4 as uuidv4 } from 'uuid';
-import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client';
-import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client';
-import * as d3 from 'd3';
-import 'lit-flatpickr';
+import { html } from 'lit'
+import { component, useState, useRef, useEffect } from 'haunted'
+import { v4 as uuidv4 } from 'uuid'
+import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client'
+import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client'
+import * as d3 from 'd3'
+import 'lit-flatpickr'
+import { findDuration, durationText } from './helpers'
+import './settings-modal'
+import './duration-bar'
+import './nav-link'
 
 type sizes = 'small' | 'medium' | 'large'
 type focusStates = 'default' | 'small' | 'medium' | 'large'
@@ -49,6 +53,7 @@ const focusStateScales = {
 function Mementer(props: { shadowRoot: any }) {
     const { shadowRoot } = props
     const [loading, setLoading] = useState(true)
+    const [settingsModalOpen, setSettingsModalOpen] = useState(false)
     const [selectedBeads, setSelectedBeads] = useState<any[]>([])
     const [newBeadText, setNewBeadText] = useState('')
     const [startDate, setStartDate] = useState('')
@@ -296,10 +301,6 @@ function Mementer(props: { shadowRoot: any }) {
         createSlices(size)
     }
 
-    function findDuration(start: string, end: string) {
-      return new Date(end).getTime() - new Date(start).getTime()
-    }
-
     function formatDate(date: Date) {
       return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
@@ -506,13 +507,6 @@ function Mementer(props: { shadowRoot: any }) {
       shadowRoot!.getElementById(`${position}-date`).open()
     }
 
-    function durationText(milliseconds: number): string {
-      const { totalYears, totalDays } = findTotalYearsAndDays(milliseconds)
-      const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
-      const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
-      return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
-    }
-
     function findMaxDate() {
       if (endDate) {
         const maxDate = new Date(endDate)
@@ -539,6 +533,10 @@ function Mementer(props: { shadowRoot: any }) {
         return percenatge > 100 ? 100 : percenatge
       }
       return 0
+    }
+
+    function updateMementer(data: any) {
+      console.log('updateMementer data: ', data)
     }
 
     useEffect(() => connectToHolochain(), [])
@@ -582,29 +580,27 @@ function Mementer(props: { shadowRoot: any }) {
           border-radius: 5px;
           padding: 10px;
         }
-        .close-button {
+        .nav-button {
           all: unset;
-          cursor: pointer;
-          position: absolute;
-          right: 0;
-          background-color: #eee;
-          border-radius: 50%;
-          width: 25px;
-          height: 25px;
+          position: fixed;
+          top: 20px;
           display: flex;
           justify-content: center;
           align-items: center;
+          flex-shrink: 0;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background-color: ${colors.grey3};
+          cursor: pointer;
         }
-        .duration-modal {
-          position: absolute;
-          top: 150px;
-          background: white;
-          border-radius: 10px;
-          padding: 20px;
-          box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
-          width: 300px;
-          z-index: 5;
+        .nav-button > img {
+          width: 30px;
+          height: 30px;
+          opacity: 0.8;
         }
+        .home-button { left: 20px }
+        .settings-button { right: 20px }
         .gold {
           filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);
         }
@@ -636,23 +632,6 @@ function Mementer(props: { shadowRoot: any }) {
           white-space: pre-wrap;
           width: 100%;
         }
-        .duration-bar {
-          width: 530px;
-          height: 25px;
-          background-color: ${colors.greyGold};
-          margin-bottom: 20px;
-          position: relative;
-        }
-        .elapsed-time {
-          height: 25px;
-          background-color: ${colors.gold};
-        }
-        .elapsed-percentage {
-          width: 20px;
-          position: absolute;
-          left: calc(50% - 10px);
-          top: 3px;
-        }
         .new-bead-container {
           width: 340px;
           height: 100%;
@@ -671,6 +650,26 @@ function Mementer(props: { shadowRoot: any }) {
       </style>
       <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center;">
         <h1 style="margin-bottom: 50px">The Mementer: The Chronogram of Life</h1>
+
+        <nav-link href='/' class='nav-button home-button'>
+          <img src='https://upload.wikimedia.org/wikipedia/commons/3/34/Home-icon.svg' alt='home' />
+        </nav-link>
+
+        <button class='nav-button settings-button' @click=${() => setSettingsModalOpen(true)}>
+          <img src='https://upload.wikimedia.org/wikipedia/commons/9/92/Cog_font_awesome.svg' alt='settings' />
+        </button>
+
+        ${settingsModalOpen
+          ? html`
+              <settings-modal
+                shadowRoot=${shadowRoot}
+                .heading=${'Mementer Settings'}
+                .close=${() => setSettingsModalOpen(false)}
+                .save=${updateMementer}
+              ></settings-modal>
+          `
+          : ''
+      }
         
         <div style='display: flex; width: 1480px'>
           <div class="new-bead-container">
@@ -694,9 +693,9 @@ function Mementer(props: { shadowRoot: any }) {
             `}
           </div>
 
-          <div style='position: relative'>
+          <div style='position: relative; margin-bottom: 20px'>
             <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class="mementer-infinity gold" />
-            <div style='margin-bottom: 20px' id='canvas'></div>
+            <div id='canvas'></div>
           </div>
 
           <div class="selected-beads">
@@ -716,209 +715,14 @@ function Mementer(props: { shadowRoot: any }) {
           </div>
         </div>
 
-        <div style="width: 700px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="width: 70px; height: 70px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
-            <img src='https://www.svgrepo.com/show/161947/letter-a-text-variant.svg' alt='alpha' class="gold" style="width: 70px; height: 70px" />
-          </div>
-          <div class="duration-bar">
-            <div class="elapsed-time" style="width: ${5.3 * elapsedTimePercentage()}px"></div>
-            <p class="elapsed-percentage">${elapsedTimePercentage().toFixed(2)}%</p>
-          </div>
-          <div style="width: 70px; height: 70px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center">
-            <img src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' class="gold" style="width: 70px; height: 70px" />
-          </div>
-        </div>
-
-        <div style="width: 700px; display: flex; justify-content: space-between; margin-bottom: 40px">
-          <div style="display: flex; flex-direction: column">
-            <p style="margin-bottom: 20px">${startDate || '∞'}</p>
-            <div style="position: relative">
-              <lit-flatpickr
-                id="start-date"
-                maxDate="${findMaxDate()}"
-                altFormat="F j, Y"
-                dateFormat="Y-m-d"
-                theme="material_orange"
-                style="background: none; position: absolute;"
-                .onChange="${() => changeDate('start')}"
-              >
-                <div>
-                  <input style="width: 20px; height: 50px; visibility: hidden" />
-                </div>
-              </lit-flatpickr>
-              <button @click=${() => openDatePicker('start')} class="button">
-                ${startDate ? 'Change' : 'Add'} start
-              </button>
-            </div>
-          </div>
-          <div style="display: flex; flex-direction: column; align-items: center; position: relative">
-            <p style="margin-bottom: 20px">${duration ? `${durationText(duration)}` : '∞'}</p>
-            <button @click=${() => setDurationModalOpen(true)} class="button">
-              ${duration ? 'Change' : 'Add'} duration
-            </button>
-            ${durationModalOpen
-              ? html`
-                  <div class="duration-modal">
-                    <div style="width: 100%; display: flex; justify-content: center; position: relative; margin-bottom: 20px">
-                      <button class="close-button" @click=${() => setDurationModalOpen(false)}>X</button>
-                      <h3>Duration modal</h3>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: center">
-                      <div style="display: flex; align-items: center; margin-bottom: 20px">
-                        <p>Years</p>
-                        <input
-                          type='number'
-                          min='0'
-                          .value=${years}
-                          @keyup=${(e: any) => setYears(+e.target.value)}
-                          @change=${(e: any) => setYears(+e.target.value)}
-                          style="width: 100px; height: 30px; margin-left: 10px"
-                        >
-                      </div>
-                      <div style="display: flex; align-items: center; margin-bottom: 20px">
-                        <p>Days</p>
-                        <input
-                          type='number'
-                          min='0'
-                          .value=${days}
-                          @keyup=${(e: any) => setDays(+e.target.value)}
-                          @change=${(e: any) => setDays(+e.target.value)}
-                          style="width: 100px; height: 30px; margin-left: 10px"
-                        >
-                      </div>
-                      <button @click=${changeDuration} class="button">
-                        Save duration
-                      </button>
-                    </div>
-                  </div>
-                `
-              : ''
-            }
-          </div>
-          <div style="display: flex; flex-direction: column; align-items: end; position: relative">
-            <p style="margin-bottom: 20px">${endDate || '∞'}</p>
-            <div style="position: relative">
-              <lit-flatpickr
-                id="end-date"
-                minDate="${findMinDate()}"
-                altFormat="F j, Y"
-                dateFormat="Y-m-d"
-                theme="material_orange"
-                style="background: none; position: absolute;"
-                .onChange="${() => changeDate('end')}"
-              >
-                <div>
-                  <input style="width: 20px; height: 50px; visibility: hidden" />
-                </div>
-              </lit-flatpickr>
-              <button @click=${() => openDatePicker('end')} class="button">
-                ${endDate ? 'Change' : 'Add'} end
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div style="display: flex; margin-bottom: 40px">
-          <div style="display: flex; align-items: center; justify-content: center; width: 400px">
-            <p style="margin: 0 10px 0 0">Large slices</p>
-            <input
-              type='number'
-              min='1'
-              .value=${numberOfSlices.large}
-              @keyup=${(e: any) => updateSlices('large', +e.target.value)}
-              @change=${(e: any) => updateSlices('large', +e.target.value)}
-              style="width: 50px; height: 30px; margin-right: 10px"
-            >
-            <p style="margin: 0">
-              ${findCircleDurationText('large')}
-            </p>
-          </div>
-          <div style="display: flex; align-items: center; justify-content: center; width: 400px">
-            <p style="margin: 0 10px 0 0">Medium slices</p>
-            <input
-              type='number'
-              min='1'
-              .value=${numberOfSlices.medium}
-              @keyup=${(e: any) => updateSlices('medium', +e.target.value)}
-              @change=${(e: any) => updateSlices('medium', +e.target.value)}
-              style="width: 50px; height: 30px; margin-right: 10px"
-            >
-            <p style="margin: 0">
-              ${findCircleDurationText('medium')}
-            </p>
-          </div>
-          <div style="display: flex; align-items: center; justify-content: center; width: 400px">
-            <p style="margin: 0 10px 0 0">Small slices</p>
-            <input
-              type='number'
-              min='1'
-              .value=${numberOfSlices.small}
-              @keyup=${(e: any) => updateSlices('small', +e.target.value)}
-              @change=${(e: any) => updateSlices('small', +e.target.value)}
-              style="width: 50px; height: 30px; margin-right: 10px"
-            >
-            <p style="margin: 0">
-              ${findCircleDurationText('small')}
-            </p>
-          </div>
-        </div>
+        <duration-bar
+          .startDate=${startDate}
+          .endDate=${endDate}
+          style='width: 770px; margin-bottom: 20px'
+        ></duration-bar>
         
       </div>
     `
 }
 
 customElements.define('the-mementer', component(Mementer));
-
-// export default Mementer
-
-// export class MementerApp extends ScopedElementsMixin(LitElement) {  
-//   render() {
-//     return html`<the-mementer shadowRoot=${this.shadowRoot}></the-mementer>`
-//   }
-
-//   static get scopedElements() { return {} }
-// }
-
-// <div style='width: 300px; height: 100%; display: flex; flex-direction: column; align-items: center; margin-left: 40px'>
-//   <p style='margin-bottom: 20px'>Large: ${selectedSlices.large}, Medium: ${selectedSlices.medium}, Small: ${selectedSlices.small}</p>
-//   <p style='margin-bottom: 20px'>${findDates()}</p>
-//   <div style='flex-direction: column; align-items: center; display: ${selectedSlices.large ? 'flex' : 'none'}'>
-//     <textarea
-//       rows='14'
-//       .value=${newSliceText}
-//       @keyup=${(e: any) => setNewBeadText(e.target.value)}
-//       @change=${(e: any) => setNewBeadText(e.target.value)}
-//       style='all: unset; width: 280px; border: 2px solid ${colors.grey1}; border-radius: 20px; background-color: white; padding: 20px; white-space: pre-wrap; margin-bottom: 20px'
-//     ></textarea>
-//     <button
-//       @click=${() => saveNewBead()}
-//       class="button"
-//     >
-//       Save text
-//     </button>
-//   </div>
-// </div>
-
-// function findDates() {
-//   if (startDate && endDate) {
-//     const largeSliceDuration = circleDurations.large / numberOfSlices.large
-//     const mediumSliceDuration = circleDurations.medium / numberOfSlices.medium
-//     const smallSliceDuration = circleDurations.small / numberOfSlices.small
-//     const largeStart = new Date(startDate).getTime() + (selectedSlices.large - 1) * largeSliceDuration
-//     const mediumStart = largeStart + (selectedSlices.medium - 1) * mediumSliceDuration
-//     const smallStart = mediumStart + (selectedSlices.small - 1) * smallSliceDuration
-//     if (selectedSlices.small) {
-//       const smallEnd = smallStart + smallSliceDuration
-//       return `${formatDate(new Date(smallStart))}  to  ${formatDate(new Date(smallEnd))}`
-//     }
-//     if (selectedSlices.medium) {
-//       const mediumEnd = mediumStart + mediumSliceDuration
-//       return `${formatDate(new Date(mediumStart))}  to  ${formatDate(new Date(mediumEnd))}`
-//     }
-//     if (selectedSlices.large) {
-//       const largeEnd = largeStart + largeSliceDuration
-//       return `${formatDate(new Date(largeStart))}  to  ${formatDate(new Date(largeEnd))}`
-//     }
-//   }
-//   return '∞  to  ∞'
-// }

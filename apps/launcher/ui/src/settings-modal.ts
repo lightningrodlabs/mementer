@@ -6,8 +6,14 @@ import './duration-bar'
 
 const colors = { blue: '#44b1f7', blueGrey: '#78bdea' }
 
-function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data: any) => void }) {
-    const { shadowRoot, close, save } = props
+function SettingsModal(props: {
+    shadowRoot: any;
+    heading: string;
+    settings?: any;
+    close: () => void;
+    save: (data: any) => void
+}) {
+    const { shadowRoot, heading, settings, close, save } = props
     const modalWidth = 700
     const [title, setTitle] = useState('')
     const [startDate, setStartDate] = useState('')
@@ -51,9 +57,9 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data:
             if (totalYears || totalDays) {
                 const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
                 const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
-                return `(${y}${totalYears && totalDays ? ', ' : ''}${d} / slice)`
+                return `${y}${totalYears && totalDays ? ', ' : ''}${d} / slice`
             }
-            return '(<1 day / slice)'
+            return '<1 day / slice'
         }
         return ''
     }
@@ -102,13 +108,9 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data:
 
     return html`
         <style>
-            * {
-                -webkit-box-sizing: border-box;
-                -moz-box-sizing: border-box;
-            }
-            p, h2, h3 {
-                margin: 0;
-            }
+            * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box }
+            p, h2, h3 { margin: 0 }
+            p { height: 20px }
             .modal {
                 display: flex;
                 flex-direction: column;
@@ -218,7 +220,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data:
         </style>
         <div class='modal'>
             <button class="close-button" @click=${close}>X</button>
-            <h2 style='margin-bottom: 50px'>Create a new Mementer</h2>
+            <h2 style='margin-bottom: 50px'>${heading}</h2>
 
             <div class='row' style='margin-bottom: 30px'>
                 <p style='margin-right: 15px'>Title:</p>

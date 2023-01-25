@@ -44,7 +44,7 @@ function MementerCard(props: { data: any }) {
             ></duration-bar>
             <div class='row'>
                 <p>${startDate}</p>
-                <p>Duration: ${durationText(findDuration(startDate, endDate))}</p>
+                <p>${durationText(findDuration(startDate, endDate))}</p>
                 <p>${endDate}</p>
             </div>
             <div class='row'>
@@ -52,7 +52,7 @@ function MementerCard(props: { data: any }) {
                 <p>Medium Slices: ${mediumSlices}</p>
                 <p>Small Slices: ${smallSlices}</p>
             </div>
-            <nav-link href="/game/${serializeHash(entryHash)}">Open</nav-link>
+            <nav-link href="/mementer/${serializeHash(entryHash)}">Open</nav-link>
         </div>
     `
 }

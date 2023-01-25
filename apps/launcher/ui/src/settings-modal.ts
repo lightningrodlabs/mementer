@@ -111,33 +111,47 @@ function SettingsModal(props: {
             * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box }
             p, h2, h3 { margin: 0 }
             p { height: 20px }
+            .wrapper {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 10;
+            }
             .modal {
+                position: relative;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                position: absolute;
-                top: 200px;
-                width: ${modalWidth}px;
-                left: calc(50% - ${modalWidth / 2}px);
+                width: 700px;
                 background: white;
-                border-radius: 10px;
+                border-radius: 20px;
                 padding: 50px;
                 box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
-                z-index: 5;
             }
             .close-button {
                 all: unset;
                 cursor: pointer;
                 position: absolute;
-                right: 10px;
-                top: 10px;
+                right: 15px;
+                top: 15px;
                 background-color: #eee;
                 border-radius: 50%;
-                width: 25px;
-                height: 25px;
+                width: 30px;
+                height: 30px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
+            }
+            .close-button > img {
+                width: 25px;
+                height: 25px;
+                opacity: 0.8;
             }
             .button {
                 all: unset;
@@ -190,13 +204,12 @@ function SettingsModal(props: {
                 flex-direction: column;
                 align-items: center;
                 position: absolute;
-                top: 370px;
+                top: 380px;
                 background: white;
                 border-radius: 10px;
-                padding: 20px;
+                padding: 30px;
                 box-shadow: 0 0 15px 0 rgba(0,0,0, 0.15);
                 width: 300px;
-                z-index: 10;
             }
             .slices {
                 display: flex;
@@ -218,161 +231,167 @@ function SettingsModal(props: {
                 margin-right: 10px;
             }
         </style>
-        <div class='modal'>
-            <button class="close-button" @click=${close}>X</button>
-            <h2 style='margin-bottom: 50px'>${heading}</h2>
+        <div class='wrapper'>
+            <div class='modal'>
+                <button class="close-button" @click=${close}>
+                    <img src='https://upload.wikimedia.org/wikipedia/commons/a/a0/OOjs_UI_icon_close.svg' alt='close' />
+                </button>
+                <h2 style='margin-bottom: 50px'>${heading}</h2>
 
-            <div class='row' style='margin-bottom: 30px'>
-                <p style='margin-right: 15px'>Title:</p>
-                <input
-                    class='text-input'
-                    type='text'
-                    .value=${title}
-                    @keyup=${(e: any) => setTitle(e.target.value)}
-                    @change=${(e: any) => setTitle(e.target.value)}
-                >
-            </div>
+                <div class='row' style='margin-bottom: 30px'>
+                    <p style='margin-right: 15px'>Title:</p>
+                    <input
+                        class='text-input'
+                        type='text'
+                        .value=${title}
+                        @keyup=${(e: any) => setTitle(e.target.value)}
+                        @change=${(e: any) => setTitle(e.target.value)}
+                    >
+                </div>
 
-            <div class='duration'>
-                <duration-bar .startDate=${startDate} .endDate=${endDate} style='margin-bottom: 20px'></duration-bar>
-                <div class='duration-picker'>
-                    <div style='display: flex; flex-direction: column'>
-                        <p style="margin-bottom: 15px">${startDate || '∞'}</p>
-                        <div style="position: relative">
+                <div class='duration'>
+                    <duration-bar .startDate=${startDate} .endDate=${endDate} style='margin-bottom: 20px'></duration-bar>
+                    <div class='duration-picker'>
+                        <div style='display: flex; flex-direction: column'>
+                            <p style="margin-bottom: 15px">${startDate || '∞'}</p>
+                            <div style="position: relative">
+                                <lit-flatpickr
+                                    id="start-date"
+                                    maxDate="${findMaxDate()}"
+                                    altFormat="F j, Y"
+                                    dateFormat="Y-m-d"
+                                    theme="material_orange"
+                                    style="background: none; position: absolute;"
+                                    .onChange="${() => changeDate('start')}"
+                                >
+                                    <div>
+                                        <input style="width: 20px; height: 50px; visibility: hidden" />
+                                    </div>
+                                </lit-flatpickr>
+                                <button class="button" @click=${() => openDatePicker('start')}>
+                                    ${startDate ? 'Change' : 'Add'} start
+                                </button>
+                            </div>
+                        </div>
+                        <div style='display: flex; flex-direction: column; align-items: center'>
+                            <p style="margin-bottom: 15px">${durationText(duration)}</p>
+                            <button @click=${() => setDurationModalOpen(true)} class="button">
+                                ${duration ? 'Change' : 'Add'} duration
+                            </button>
+                            ${durationModalOpen
+                                ? html`
+                                    <div class="duration-modal">
+                                        <button class="close-button" @click=${() => setDurationModalOpen(false)}>
+                                            <img src='https://upload.wikimedia.org/wikipedia/commons/a/a0/OOjs_UI_icon_close.svg' alt='close' />
+                                        </button>
+                                        <h3 style='margin-bottom: 30px'>Duration modal</h3>
+                                        <div style="display: flex; align-items: center; margin-bottom: 20px">
+                                            <p>Years</p>
+                                            <input
+                                                type='number'
+                                                min='0'
+                                                .value=${years}
+                                                @keyup=${(e: any) => setYears(+e.target.value)}
+                                                @change=${(e: any) => setYears(+e.target.value)}
+                                                style="width: 100px; height: 30px; margin-left: 10px"
+                                            >
+                                        </div>
+                                        <div style="display: flex; align-items: center; margin-bottom: 30px">
+                                            <p>Days</p>
+                                            <input
+                                                type='number'
+                                                min='0'
+                                                .value=${days}
+                                                @keyup=${(e: any) => setDays(+e.target.value)}
+                                                @change=${(e: any) => setDays(+e.target.value)}
+                                                style="width: 100px; height: 30px; margin-left: 10px"
+                                            >
+                                        </div>
+                                        <button @click=${changeDuration} class="button">
+                                            Save duration
+                                        </button>
+                                    </div>
+                                `
+                            : ''
+                            }
+                        </div>
+                        <div style='display: flex; flex-direction: column; align-items: end'>
+                            <p style="margin-bottom: 15px">${endDate || '∞'}</p>
+                            <div style="position: relative">
                             <lit-flatpickr
-                                id="start-date"
-                                maxDate="${findMaxDate()}"
+                                id="end-date"
+                                minDate="${findMinDate()}"
                                 altFormat="F j, Y"
                                 dateFormat="Y-m-d"
                                 theme="material_orange"
                                 style="background: none; position: absolute;"
-                                .onChange="${() => changeDate('start')}"
+                                .onChange="${() => changeDate('end')}"
                             >
                                 <div>
-                                    <input style="width: 20px; height: 50px; visibility: hidden" />
+                                <input style="width: 20px; height: 50px; visibility: hidden" />
                                 </div>
                             </lit-flatpickr>
-                            <button class="button" @click=${() => openDatePicker('start')}>
-                                ${startDate ? 'Change' : 'Add'} start
+                            <button @click=${() => openDatePicker('end')} class="button">
+                                ${endDate ? 'Change' : 'Add'} end
                             </button>
-                        </div>
-                    </div>
-                    <div style='display: flex; flex-direction: column; align-items: center'>
-                        <p style="margin-bottom: 15px">${durationText(duration)}</p>
-                        <button @click=${() => setDurationModalOpen(true)} class="button">
-                            ${duration ? 'Change' : 'Add'} duration
-                        </button>
-                        ${durationModalOpen
-                            ? html`
-                                <div class="duration-modal">
-                                    <button class="close-button" @click=${() => setDurationModalOpen(false)}>X</button>
-                                    <h3 style='margin-bottom: 30px'>Duration modal</h3>
-                                    <div style="display: flex; align-items: center; margin-bottom: 20px">
-                                        <p>Years</p>
-                                        <input
-                                            type='number'
-                                            min='0'
-                                            .value=${years}
-                                            @keyup=${(e: any) => setYears(+e.target.value)}
-                                            @change=${(e: any) => setYears(+e.target.value)}
-                                            style="width: 100px; height: 30px; margin-left: 10px"
-                                        >
-                                    </div>
-                                    <div style="display: flex; align-items: center; margin-bottom: 30px">
-                                        <p>Days</p>
-                                        <input
-                                            type='number'
-                                            min='0'
-                                            .value=${days}
-                                            @keyup=${(e: any) => setDays(+e.target.value)}
-                                            @change=${(e: any) => setDays(+e.target.value)}
-                                            style="width: 100px; height: 30px; margin-left: 10px"
-                                        >
-                                    </div>
-                                    <button @click=${changeDuration} class="button">
-                                        Save duration
-                                    </button>
-                                </div>
-                            `
-                        : ''
-                        }
-                    </div>
-                    <div style='display: flex; flex-direction: column; align-items: end'>
-                        <p style="margin-bottom: 15px">${endDate || '∞'}</p>
-                        <div style="position: relative">
-                        <lit-flatpickr
-                            id="end-date"
-                            minDate="${findMinDate()}"
-                            altFormat="F j, Y"
-                            dateFormat="Y-m-d"
-                            theme="material_orange"
-                            style="background: none; position: absolute;"
-                            .onChange="${() => changeDate('end')}"
-                        >
-                            <div>
-                            <input style="width: 20px; height: 50px; visibility: hidden" />
                             </div>
-                        </lit-flatpickr>
-                        <button @click=${() => openDatePicker('end')} class="button">
-                            ${endDate ? 'Change' : 'Add'} end
-                        </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class='slices'>
-                <div class='slice-item'>
-                    <div class='slice-input'>
-                        <p>Large slices</p>
-                        <input
-                            class='number-input'
-                            type='number'
-                            min='1'
-                            .value=${largeSlices}
-                            @keyup=${(e: any) => setLargeSlices(+e.target.value)}
-                            @change=${(e: any) => setLargeSlices(+e.target.value)}
-                        >
+                <div class='slices'>
+                    <div class='slice-item'>
+                        <div class='slice-input'>
+                            <p>Large slices</p>
+                            <input
+                                class='number-input'
+                                type='number'
+                                min='1'
+                                .value=${largeSlices}
+                                @keyup=${(e: any) => setLargeSlices(+e.target.value)}
+                                @change=${(e: any) => setLargeSlices(+e.target.value)}
+                            >
+                        </div>
+                        <p>${sliceText('large')}</p>
                     </div>
-                    <p>${sliceText('large')}</p>
-                </div>
-                <div class='slice-item'>
-                    <div class='slice-input'>
-                        <p>Medium slices</p>
-                        <input
-                            class='number-input'
-                            type='number'
-                            min='1'
-                            .value=${mediumSlices}
-                            @keyup=${(e: any) => setMediumSlices(+e.target.value)}
-                            @change=${(e: any) => setMediumSlices(+e.target.value)}
-                        >
+                    <div class='slice-item'>
+                        <div class='slice-input'>
+                            <p>Medium slices</p>
+                            <input
+                                class='number-input'
+                                type='number'
+                                min='1'
+                                .value=${mediumSlices}
+                                @keyup=${(e: any) => setMediumSlices(+e.target.value)}
+                                @change=${(e: any) => setMediumSlices(+e.target.value)}
+                            >
+                        </div>
+                        <p>${sliceText('medium')}</p>
                     </div>
-                    <p>${sliceText('medium')}</p>
-                </div>
-                <div class='slice-item'>
-                    <div class='slice-input'>
-                        <p>Small slices</p>
-                        <input
-                            class='number-input'
-                            type='number'
-                            min='1'
-                            .value=${smallSlices}
-                            @keyup=${(e: any) => setSmallSlices(+e.target.value)}
-                            @change=${(e: any) => setSmallSlices(+e.target.value)}
-                        >
+                    <div class='slice-item'>
+                        <div class='slice-input'>
+                            <p>Small slices</p>
+                            <input
+                                class='number-input'
+                                type='number'
+                                min='1'
+                                .value=${smallSlices}
+                                @keyup=${(e: any) => setSmallSlices(+e.target.value)}
+                                @change=${(e: any) => setSmallSlices(+e.target.value)}
+                            >
+                        </div>
+                        <p>${sliceText('small')}</p>
                     </div>
-                    <p>${sliceText('small')}</p>
                 </div>
+                
+                <button
+                    class="button"
+                    .disabled=${!title || !(startDate && endDate)}
+                    @click=${() => save({ title, startDate, endDate, largeSlices, mediumSlices, smallSlices })}
+                >
+                    Create
+                </button>
             </div>
-            
-            <button
-                class="button"
-                .disabled=${!title || !(startDate && endDate)}
-                @click=${() => save({ title, startDate, endDate, largeSlices, mediumSlices, smallSlices })}
-            >
-                Create
-            </button>
         </div>
     `
 }

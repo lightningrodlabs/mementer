@@ -1,6 +1,7 @@
-import { html } from 'lit';
-import { component, useState } from 'haunted';
-import 'lit-flatpickr';
+import 'lit-flatpickr'
+import { html } from 'lit'
+import { component, useState } from 'haunted'
+import { pluralise, formatDate, findDuration, durationText, totalYearsAndDays } from './helpers'
 import './duration-bar'
 
 const colors = { blue: '#44b1f7', blueGrey: '#78bdea' }
@@ -19,18 +20,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data:
     const [mediumSlices, setMediumSlices] = useState(12)
     const [smallSlices, setSmallSlices] = useState(6)
 
-    function pluralise(number: number): string {
-        return number < 1 || number > 1 ? 's' : ''
-    }
-
-    function formatDate(date: Date) {
-        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-    }
-
-    function findDuration(start: string, end: string) {
-        return new Date(end).getTime() - new Date(start).getTime()
-    }
-
     function findMaxDate() {
         if (endDate) {
           const maxDate = new Date(endDate)
@@ -47,24 +36,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data:
             return formatDate(minDate)
         }
         return ''
-    }
-
-    function totalYearsAndDays(milliseconds: number) {
-        const day = 1000 * 60 * 60 * 24
-        const year = day * 365
-        const totalYears = Math.floor(milliseconds / year)
-        const totalDays = Math.floor(milliseconds / day) - totalYears * 365
-        return { totalYears, totalDays }
-    }
-
-    function durationText(): string {
-        if (duration) {
-            const { totalYears, totalDays } = totalYearsAndDays(duration)
-            const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
-            const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
-            return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`
-        }
-        return '∞'
     }
 
     function sliceText(size: string) {
@@ -285,7 +256,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data:
                         </div>
                     </div>
                     <div style='display: flex; flex-direction: column; align-items: center'>
-                        <p style="margin-bottom: 15px">${durationText()}</p>
+                        <p style="margin-bottom: 15px">${durationText(duration)}</p>
                         <button @click=${() => setDurationModalOpen(true)} class="button">
                             ${duration ? 'Change' : 'Add'} duration
                         </button>

@@ -1,16 +1,12 @@
 import { html } from 'lit';
 import { component, useState } from 'haunted';
 import 'lit-flatpickr';
+import './duration-bar'
 
-const colors = {
-    gold: '#f4c200',
-    greyGold: '#e1d7b0',
-    blue: '#44b1f7',
-    greyBlue: '#78bdea',
-  }
+const colors = { blue: '#44b1f7', blueGrey: '#78bdea' }
 
-function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (data: any) => void }) {
-    const { shadowRoot, close, onSave } = props
+function SettingsModal(props: { shadowRoot: any; close: () => void; save: (data: any) => void }) {
+    const { shadowRoot, close, save } = props
     const modalWidth = 700
     const [title, setTitle] = useState('')
     const [startDate, setStartDate] = useState('')
@@ -59,18 +55,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         const totalYears = Math.floor(milliseconds / year)
         const totalDays = Math.floor(milliseconds / day) - totalYears * 365
         return { totalYears, totalDays }
-    }
-
-    function elapsedTimePercentage() {
-        if (startDate && endDate) {
-          const startTime = new Date(startDate).getTime()
-          const endTime = new Date(endDate).getTime()
-          const now = new Date().getTime()
-          if (startTime > now) return 0
-          if (endTime < now) return 100
-          return (100 / duration) * (now - startTime)
-        }
-        return 0
     }
 
     function durationText(): string {
@@ -145,17 +129,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
         setDurationModalOpen(false)
     }
 
-    function save() {
-        onSave({
-            title,
-            startDate,
-            endDate,
-            largeSlices,
-            mediumSlices,
-            smallSlices
-        })
-    }
-
     return html`
         <style>
             * {
@@ -206,7 +179,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                 color: white;
             }
             .button:disabled {
-                background-color: ${colors.greyBlue};
+                background-color: ${colors.blueGrey};
                 cursor: default;
             }
             .column {
@@ -232,36 +205,6 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                 display: flex;
                 flex-direction: column;
                 margin-bottom: 50px;
-            }
-            .duration-header {
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-                position: relative;
-            }
-            .gold-svg {
-                width: 70px;
-                height: 70px;
-                filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);
-            }
-            .duration-bar {
-                width: calc(100% - 105px);
-                height: 25px;
-                background-color: ${colors.greyGold};
-                position: absolute;
-                left: 42px;
-            }
-            .elapsed-time {
-                height: 25px;
-                background-color: ${colors.gold};
-            }
-            .elapsed-percentage {
-                width: 20px;
-                position: absolute;
-                left: calc(50% - 10px);
-                top: 3px;
             }
             .duration-picker {
                 width: 100%;
@@ -318,14 +261,7 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
             </div>
 
             <div class='duration'>
-                <div class='duration-header'>
-                    <div class="duration-bar">
-                        <div class="elapsed-time" style="width: calc(100% * ${elapsedTimePercentage() / 100})"></div>
-                        <p class="elapsed-percentage">${elapsedTimePercentage().toFixed(2)}%</p>
-                    </div>
-                    <img class="gold-svg" src='https://www.svgrepo.com/show/161947/letter-a-text-variant.svg' alt='alpha' />
-                    <img class="gold-svg" src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' />
-                </div>
+                <duration-bar .startDate=${startDate} .endDate=${endDate} style='margin-bottom: 20px'></duration-bar>
                 <div class='duration-picker'>
                     <div style='display: flex; flex-direction: column'>
                         <p style="margin-bottom: 15px">${startDate || '∞'}</p>
@@ -457,7 +393,11 @@ function SettingsModal(props: { shadowRoot: any; close: () => void; onSave: (dat
                 </div>
             </div>
             
-            <button class="button" .disabled=${!title || !(startDate && endDate)} @click=${save}>
+            <button
+                class="button"
+                .disabled=${!title || !(startDate && endDate)}
+                @click=${() => save({ title, startDate, endDate, largeSlices, mediumSlices, smallSlices })}
+            >
                 Create
             </button>
         </div>

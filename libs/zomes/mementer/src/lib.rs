@@ -10,61 +10,20 @@ pub struct CreateMementerOutput {
   pub entry_hash: EntryHash
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct MementerOutput {
-  pub entry_hash: EntryHash,
-  // pub creator: User,
-  pub settings: MementerSettings,
-}
-
-fn get_mementer_path(_mementer: &Mementer) -> ExternResult<Path> {
+fn get_mementer_path(_mementer: &MementerEntry) -> ExternResult<Path> {
   let path = Path::from("mementers".to_string());
-  let typed_path = path.clone().into_typed(ScopedLinkType::try_from(LinkTypes::Mementer)?);
+  let typed_path = path.clone().into_typed(ScopedLinkType::try_from(LinkTypes::MementerEntry)?);
   typed_path.ensure()?;
   
   Ok(path)
 }
 
-#[hdk_extern]
-pub fn create_mementer(input: MementerSettings) -> ExternResult<CreateMementerOutput> {
-  let settings_action_hash = create_entry(EntryTypes::MementerSettings(input.clone()))?;
-  let mementer = Mementer { id: settings_action_hash.clone() };
-  let action_hash = create_entry(EntryTypes::Mementer(mementer.clone()))?;
-  let hash: EntryHash = hash_entry(&mementer)?;
-  let path = get_mementer_path(&mementer)?;
-  // link mementers path to new mementer
-  create_link(path.path_entry_hash()?, hash.clone(), LinkTypes::Mementer, ())?;
-  // link mementer to settings
-  create_link(hash.clone(), settings_action_hash.clone(), LinkTypes::MementerSettings, ())?;
-
-  Ok(CreateMementerOutput{
-    action_hash: action_hash.into(),
-    settings_action_hash: settings_action_hash.into(),
-    entry_hash: hash.into()
-  })
-}
-
-#[hdk_extern]
-pub fn get_mementers(_: ()) -> ExternResult<Vec<MementerOutput>> {
-    let path = Path::from("mementers".to_string());
-    // get links to mementers
-    let mementer_links = get_links(path.path_entry_hash()?, LinkTypes::Mementer, None)?;
-    // gather settings inputs for each mementer
-    let mut inputs = vec![];
-    for link in mementer_links {
-      inputs.push(GetLinksInput::new(link.target.into(), LinkTypes::MementerSettings.try_into()?, None))
-    }
-
-    get_latest_mementer_settings(inputs)
-}
-
 // todo: include 'creator: User'
-fn mementer_from_details(details: Details, mementer_entry_hash: EntryHash) -> ExternResult<Option<MementerOutput>> {
+fn mementer_from_details(details: Details, mementer_entry_hash: EntryHash) -> ExternResult<Option<Mementer>> {
   match details {
     Details::Record(RecordDetails { record, .. }) => {
       let settings: MementerSettings = record.try_into()?;
-      Ok(Some(MementerOutput {
+      Ok(Some(Mementer {
         entry_hash: mementer_entry_hash.into(),
         // creator,
         settings,
@@ -74,9 +33,9 @@ fn mementer_from_details(details: Details, mementer_entry_hash: EntryHash) -> Ex
   }
 }
 
-fn get_latest_mementer_settings(inputs: Vec<GetLinksInput>) -> ExternResult<Vec<MementerOutput>> {
+fn get_latest_mementer_settings(inputs: Vec<GetLinksInput>) -> ExternResult<Vec<Mementer>> {
   let all_settings = HDK.with(|hdk| hdk.borrow().get_link_details(inputs))?;
-  let mut mementers: Vec<MementerOutput> = vec![];
+  let mut mementers: Vec<Mementer> = vec![];
 
   for link_details in all_settings {
     // find the most recent linked settings
@@ -135,4 +94,54 @@ fn get_latest_mementer_settings(inputs: Vec<GetLinksInput>) -> ExternResult<Vec<
   // }
 
   Ok(mementers)
+}
+
+#[hdk_extern]
+pub fn create_mementer(input: MementerSettings) -> ExternResult<CreateMementerOutput> {
+  let settings_action_hash = create_entry(EntryTypes::MementerSettings(input.clone()))?;
+  let mementer = MementerEntry { id: settings_action_hash.clone() };
+  let action_hash = create_entry(EntryTypes::MementerEntry(mementer.clone()))?;
+  let hash: EntryHash = hash_entry(&mementer)?;
+  let path = get_mementer_path(&mementer)?;
+  // link mementers path to new mementer
+  create_link(path.path_entry_hash()?, hash.clone(), LinkTypes::MementerEntry, ())?;
+  // link mementer to settings
+  create_link(hash.clone(), settings_action_hash.clone(), LinkTypes::MementerSettings, ())?;
+
+  Ok(CreateMementerOutput{
+    action_hash: action_hash.into(),
+    settings_action_hash: settings_action_hash.into(),
+    entry_hash: hash.into()
+  })
+}
+
+#[hdk_extern]
+pub fn get_mementers(_: ()) -> ExternResult<Vec<Mementer>> {
+    let path = Path::from("mementers".to_string());
+    // get links to mementers
+    let mementer_links = get_links(path.path_entry_hash()?, LinkTypes::MementerEntry, None)?;
+    // gather settings inputs for each mementer
+    let mut inputs = vec![];
+    for link in mementer_links {
+      inputs.push(GetLinksInput::new(link.target.into(), LinkTypes::MementerSettings.try_into()?, None))
+    }
+
+    get_latest_mementer_settings(inputs)
+}
+
+#[hdk_extern]
+fn get_mementer(mementer_entry_hash: EntryHash) -> ExternResult<Mementer> {
+    let inputs = vec![GetLinksInput::new(mementer_entry_hash.into(), LinkTypes::MementerSettings.try_into()?, None)];
+    let mementers = get_latest_mementer_settings(inputs).unwrap();
+    let mementer: Option<Mementer> = Some(mementers[0].clone());
+
+    Ok(mementer.ok_or(wasm_error!(WasmErrorInner::Guest("Mementer not found".into())))?)
+}
+
+#[hdk_extern]
+pub fn update_mementer(input: Mementer) -> ExternResult<ActionHash> {
+    let settings_action_hash = create_entry(EntryTypes::MementerSettings(input.settings.clone()))?;
+    create_link(input.entry_hash, settings_action_hash.clone(), LinkTypes::MementerSettings, ())?;
+
+    Ok(settings_action_hash.into())
 }

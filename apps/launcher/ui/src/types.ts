@@ -9,7 +9,7 @@ export type MementerSettings = {
     smallSlices: Number,
 }
 
-export type MementerOutput = {
+export type Mementer = {
     entryHash: EntryHashB64,
     settings: MementerSettings
 }

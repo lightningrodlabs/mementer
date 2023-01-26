@@ -3,20 +3,20 @@ use hdi::prelude::*;
 #[hdk_entry_defs]
 #[unit_enum(UnitEntryTypes)]
 pub enum EntryTypes {
-    Mementer(Mementer),
+    MementerEntry(MementerEntry),
     MementerSettings(MementerSettings)
 }
 
 #[hdk_link_types]
 pub enum LinkTypes {
-    Mementer,
+    MementerEntry,
     MementerSettings,
 }
 
 #[hdk_entry_helper]
 #[serde(rename_all = "camelCase")]
 #[derive(Clone)]
-pub struct Mementer {
+pub struct MementerEntry {
     pub id: ActionHash,
 }
 
@@ -30,4 +30,13 @@ pub struct MementerSettings {
     pub large_slices: usize,
     pub medium_slices: usize,
     pub small_slices: usize,
+}
+
+#[hdk_entry_helper]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
+pub struct Mementer {
+    pub entry_hash: EntryHash,
+    // pub creator: User,
+    pub settings: MementerSettings,
 }

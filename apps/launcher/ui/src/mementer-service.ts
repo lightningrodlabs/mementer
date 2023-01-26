@@ -1,7 +1,7 @@
 import { CellClient } from '@holochain-open-dev/cell-client'
 import { EntryHashB64, AgentPubKeyB64, ActionHashB64 } from '@holochain-open-dev/core-types'
 import { serializeHash } from '@holochain-open-dev/utils'
-import { Mementer, MementerSettings } from './types'
+import { Mementer, MementerSettings, BeadInput, CreateBeadOutput } from './types'
 
 export default class MementerService {
     constructor(public cellClient: CellClient, protected zomeName = 'mementer') {}
@@ -24,6 +24,14 @@ export default class MementerService {
 
     async updateMementer(input: Mementer): Promise<Mementer> {
         return this.callZome('update_mementer', input)
+    }
+
+    async createBead(input: BeadInput): Promise<CreateBeadOutput> {
+        return this.callZome('create_bead', input)
+    }
+
+    async getBeads(entryHash: EntryHashB64): Promise<Array<BeadInput>> {
+        return this.callZome('get_beads', entryHash)
     }
 
     private callZome(fn_name: string, payload: any) {

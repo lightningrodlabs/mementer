@@ -10,6 +10,37 @@ pub struct CreateMementerOutput {
   pub entry_hash: EntryHash
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateOutput {
+    pub action_hash: ActionHash,
+    pub entry_hash: EntryHash
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateBeadInput {
+    pub entry_hash: EntryHash,
+    pub bead: Bead,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateBeadOutput {
+    pub action_hash: ActionHash,
+    pub entry_hash: EntryHash,
+    pub agent_key: AgentPubKey,
+    pub bead: Bead,
+    pub timestamp: Timestamp,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct BeadOutput {
+  pub entry_hash: EntryHash,
+  pub bead: Bead,
+}
+
 fn get_mementer_path(_mementer: &MementerEntry) -> ExternResult<Path> {
   let path = Path::from("mementers".to_string());
   let typed_path = path.clone().into_typed(ScopedLinkType::try_from(LinkTypes::MementerEntry)?);
@@ -144,4 +175,68 @@ pub fn update_mementer(input: Mementer) -> ExternResult<ActionHash> {
     create_link(input.entry_hash, settings_action_hash.clone(), LinkTypes::MementerSettings, ())?;
 
     Ok(settings_action_hash.into())
+}
+
+#[hdk_extern]
+pub fn create_bead(input: CreateBeadInput) -> ExternResult<CreateOutput> {
+  let action_hash = create_entry(EntryTypes::Bead(input.bead.clone()))?;
+  let hash: EntryHash = hash_entry(&input.bead)?;
+  let entry_hash: EntryHash = input.entry_hash.into();
+  create_link(AnyLinkableHash::from(entry_hash), AnyLinkableHash::from(hash.clone()), LinkTypes::Bead, ())?;
+
+  Ok(CreateOutput{
+    action_hash: action_hash.into(),
+    entry_hash: hash.into()
+  })
+}
+
+fn bead_from_details(details: Details) -> ExternResult<Option<CreateBeadOutput>> {
+    match details {
+        Details::Entry(EntryDetails { entry, actions, .. }) => {
+            let bead: Bead = entry.try_into()?;
+            let hash = hash_entry(&bead)?;
+            let action = actions[0].clone();
+            Ok(Some(CreateBeadOutput {
+                entry_hash: hash.into(),
+                action_hash: action.as_hash().clone().into(),
+                bead, 
+                agent_key: action.action().author().clone().into(),
+                timestamp: action.action().timestamp(),
+            }))
+        }
+        _ => Ok(None),
+    }
+}
+
+fn get_beads_inner(base: EntryHash) -> ExternResult<Vec<BeadOutput>> {
+    let links = get_links(base, LinkTypes::Bead, None)?;
+
+    let get_input = links
+        .into_iter()
+        .map(|link| GetInput::new(EntryHash::from(link.target).into(), GetOptions::default()))
+        .collect();
+
+    let bead_elements = HDK.with(|hdk| hdk.borrow().get_details(get_input))?;
+
+    let beads_with_details: Vec<CreateBeadOutput> = bead_elements
+        .into_iter()
+        .filter_map(|me| me)
+        .filter_map(|details| bead_from_details(details).ok()?)
+        .collect();
+
+    let mut beads: Vec<BeadOutput> = vec![];
+    for bead in beads_with_details.clone() {
+        // if let Some(player) = get_player_details(bead.clone().agent_key.into())? {
+        //     let bead_with_player = BeadWithPlayer { player, bead: bead.bead, timestamp: bead.timestamp };
+        let bead_output = BeadOutput { entry_hash: bead.entry_hash, bead: bead.bead };
+        beads.push(bead_output);
+        // }
+    }
+    
+    Ok(beads)
+}
+
+#[hdk_extern]
+pub fn get_beads(entry_hash: EntryHash) -> ExternResult<Vec<BeadOutput>> {
+    get_beads_inner(entry_hash.into())
 }

@@ -1,20 +1,19 @@
 import 'lit-flatpickr'
 import { html } from 'lit'
-import { component, useState } from 'haunted'
-import { pluralise, formatDate, findDuration, durationText, totalYearsAndDays } from './helpers'
+import { component, useEffect, useState } from 'haunted'
+import { pluralise, formatDate, findDuration, durationText, findYearsAndDays } from './helpers'
 import './duration-bar'
 
 const colors = { blue: '#44b1f7', blueGrey: '#78bdea' }
 
 function SettingsModal(props: {
     shadowRoot: any;
-    heading: string;
+    location: 'home' | 'mementer';
     settings?: any;
     close: () => void;
     save: (data: any) => void
 }) {
-    const { shadowRoot, heading, settings, close, save } = props
-    const modalWidth = 700
+    const { shadowRoot, location, settings, close, save } = props
     const [title, setTitle] = useState('')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
@@ -53,7 +52,7 @@ function SettingsModal(props: {
             if (size === 'large') sliceDuration = largeSliceDuration
             if (size === 'medium') sliceDuration = mediumSliceDuration
             if (size === 'small') sliceDuration = smallSliceDuration
-            const { totalYears, totalDays } = totalYearsAndDays(sliceDuration)
+            const { totalYears, totalDays } = findYearsAndDays(sliceDuration)
             if (totalYears || totalDays) {
                 const y = totalYears ? `${totalYears} year${pluralise(totalYears)}` : ''
                 const d = totalDays ? `${totalDays} day${pluralise(totalDays)}` : ''
@@ -70,7 +69,7 @@ function SettingsModal(props: {
 
     function updateDuration(newDuration: number) {
         setDuration(newDuration)
-        const { totalYears, totalDays } = totalYearsAndDays(newDuration)
+        const { totalYears, totalDays } = findYearsAndDays(newDuration)
         setYears(totalYears)
         setDays(totalDays)
     }
@@ -105,6 +104,22 @@ function SettingsModal(props: {
         else if (endDate) updateOtherDate('start', endDate, newDuration)
         setDurationModalOpen(false)
     }
+
+    useEffect(() => {
+        if (settings) {
+            const settingsDuration = findDuration(settings.startDate, settings.endDate)
+            const { totalYears, totalDays } = findYearsAndDays(settingsDuration)
+            setTitle(settings.title)
+            setStartDate(settings.startDate)
+            setEndDate(settings.endDate)
+            setDuration(settingsDuration)
+            setYears(totalYears)
+            setDays(totalDays)
+            setLargeSlices(settings.largeSlices)
+            setMediumSlices(settings.mediumSlices)
+            setSmallSlices(settings.smallSlices)
+        }
+    }, [])
 
     return html`
         <style>
@@ -184,8 +199,10 @@ function SettingsModal(props: {
                 padding: 0 10px;
             }
             .number-input {
-                width: 50px;
-                height: 30px;
+                width: 70px;
+                height: 40px;
+                font-size: 16px;
+                padding: 0 7px;
             }
             .duration {
                 width: 100%;
@@ -233,10 +250,10 @@ function SettingsModal(props: {
         </style>
         <div class='wrapper'>
             <div class='modal'>
-                <button class="close-button" @click=${close}>
+                <button class='close-button' @click=${close}>
                     <img src='https://upload.wikimedia.org/wikipedia/commons/a/a0/OOjs_UI_icon_close.svg' alt='close' />
                 </button>
-                <h2 style='margin-bottom: 50px'>${heading}</h2>
+                <h2 style='margin-bottom: 50px'>${location === 'home' ? 'Create a new Mementer' : 'Mementer settings'}</h2>
 
                 <div class='row' style='margin-bottom: 30px'>
                     <p style='margin-right: 15px'>Title:</p>
@@ -253,39 +270,39 @@ function SettingsModal(props: {
                     <duration-bar .startDate=${startDate} .endDate=${endDate} style='margin-bottom: 20px'></duration-bar>
                     <div class='duration-picker'>
                         <div style='display: flex; flex-direction: column'>
-                            <p style="margin-bottom: 15px">${startDate || '∞'}</p>
-                            <div style="position: relative">
+                            <p style='margin-bottom: 15px'>${startDate || '∞'}</p>
+                            <div style='position: relative'>
                                 <lit-flatpickr
-                                    id="start-date"
-                                    maxDate="${findMaxDate()}"
-                                    altFormat="F j, Y"
-                                    dateFormat="Y-m-d"
-                                    theme="material_orange"
-                                    style="background: none; position: absolute;"
-                                    .onChange="${() => changeDate('start')}"
+                                    id='start-date'
+                                    maxDate='${findMaxDate()}'
+                                    altFormat='F j, Y'
+                                    dateFormat='Y-m-d'
+                                    theme='material_orange'
+                                    style='background: none; position: absolute;'
+                                    .onChange='${() => changeDate('start')}'
                                 >
                                     <div>
-                                        <input style="width: 20px; height: 50px; visibility: hidden" />
+                                        <input style='width: 20px; height: 50px; visibility: hidden' />
                                     </div>
                                 </lit-flatpickr>
-                                <button class="button" @click=${() => openDatePicker('start')}>
+                                <button class='button' @click=${() => openDatePicker('start')}>
                                     ${startDate ? 'Change' : 'Add'} start
                                 </button>
                             </div>
                         </div>
                         <div style='display: flex; flex-direction: column; align-items: center'>
-                            <p style="margin-bottom: 15px">${durationText(duration)}</p>
-                            <button @click=${() => setDurationModalOpen(true)} class="button">
+                            <p style='margin-bottom: 15px'>${durationText(duration)}</p>
+                            <button @click=${() => setDurationModalOpen(true)} class='button'>
                                 ${duration ? 'Change' : 'Add'} duration
                             </button>
                             ${durationModalOpen
                                 ? html`
-                                    <div class="duration-modal">
-                                        <button class="close-button" @click=${() => setDurationModalOpen(false)}>
+                                    <div class='duration-modal'>
+                                        <button class='close-button' @click=${() => setDurationModalOpen(false)}>
                                             <img src='https://upload.wikimedia.org/wikipedia/commons/a/a0/OOjs_UI_icon_close.svg' alt='close' />
                                         </button>
                                         <h3 style='margin-bottom: 30px'>Duration modal</h3>
-                                        <div style="display: flex; align-items: center; margin-bottom: 20px">
+                                        <div style='display: flex; align-items: center; margin-bottom: 20px'>
                                             <p>Years</p>
                                             <input
                                                 type='number'
@@ -293,10 +310,10 @@ function SettingsModal(props: {
                                                 .value=${years}
                                                 @keyup=${(e: any) => setYears(+e.target.value)}
                                                 @change=${(e: any) => setYears(+e.target.value)}
-                                                style="width: 100px; height: 30px; margin-left: 10px"
+                                                style='width: 100px; height: 30px; margin-left: 10px'
                                             >
                                         </div>
-                                        <div style="display: flex; align-items: center; margin-bottom: 30px">
+                                        <div style='display: flex; align-items: center; margin-bottom: 30px'>
                                             <p>Days</p>
                                             <input
                                                 type='number'
@@ -304,10 +321,10 @@ function SettingsModal(props: {
                                                 .value=${days}
                                                 @keyup=${(e: any) => setDays(+e.target.value)}
                                                 @change=${(e: any) => setDays(+e.target.value)}
-                                                style="width: 100px; height: 30px; margin-left: 10px"
+                                                style='width: 100px; height: 30px; margin-left: 10px'
                                             >
                                         </div>
-                                        <button @click=${changeDuration} class="button">
+                                        <button @click=${changeDuration} class='button'>
                                             Save duration
                                         </button>
                                     </div>
@@ -316,22 +333,22 @@ function SettingsModal(props: {
                             }
                         </div>
                         <div style='display: flex; flex-direction: column; align-items: end'>
-                            <p style="margin-bottom: 15px">${endDate || '∞'}</p>
-                            <div style="position: relative">
+                            <p style='margin-bottom: 15px'>${endDate || '∞'}</p>
+                            <div style='position: relative'>
                             <lit-flatpickr
-                                id="end-date"
-                                minDate="${findMinDate()}"
-                                altFormat="F j, Y"
-                                dateFormat="Y-m-d"
-                                theme="material_orange"
-                                style="background: none; position: absolute;"
-                                .onChange="${() => changeDate('end')}"
+                                id='end-date'
+                                minDate='${findMinDate()}'
+                                altFormat='F j, Y'
+                                dateFormat='Y-m-d'
+                                theme='material_orange'
+                                style='background: none; position: absolute;'
+                                .onChange='${() => changeDate('end')}'
                             >
                                 <div>
-                                <input style="width: 20px; height: 50px; visibility: hidden" />
+                                <input style='width: 20px; height: 50px; visibility: hidden' />
                                 </div>
                             </lit-flatpickr>
-                            <button @click=${() => openDatePicker('end')} class="button">
+                            <button @click=${() => openDatePicker('end')} class='button'>
                                 ${endDate ? 'Change' : 'Add'} end
                             </button>
                             </div>
@@ -385,11 +402,11 @@ function SettingsModal(props: {
                 </div>
                 
                 <button
-                    class="button"
+                    class='button'
                     .disabled=${!title || !(startDate && endDate)}
                     @click=${() => save({ title, startDate, endDate, largeSlices, mediumSlices, smallSlices })}
                 >
-                    Create
+                    ${location === 'home' ? 'Create' : 'Save'}
                 </button>
             </div>
         </div>

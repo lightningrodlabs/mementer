@@ -70,12 +70,12 @@ function DurationBar(props: { startDate: string; endDate: string }) {
             }
         </style>
         <div class='wrapper'>
-            <div class="bar">
-                <div class="elapsed-time" style="width: calc(100% * ${percentage() / 100})"></div>
-                <p class="elapsed-percentage">${percentage().toFixed(2)}%</p>
+            <div class='bar'>
+                <div class='elapsed-time' style='width: calc(100% * ${percentage() / 100})'></div>
+                <p class='elapsed-percentage'>${percentage().toFixed(2)}%</p>
             </div>
-            <img class="gold-svg" src='https://www.svgrepo.com/show/161947/letter-a-text-variant.svg' alt='alpha' />
-            <img class="gold-svg" src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' />
+            <img class='gold-svg' src='https://www.svgrepo.com/show/161947/letter-a-text-variant.svg' alt='alpha' />
+            <img class='gold-svg' src='https://upload.wikimedia.org/wikipedia/commons/3/3d/Code2000_Greek_omega.svg' alt='omega' />
         </div>
     `
 }

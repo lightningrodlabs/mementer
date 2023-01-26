@@ -52,7 +52,7 @@ function MementerCard(props: { data: any }) {
                 <p>Medium Slices: ${mediumSlices}</p>
                 <p>Small Slices: ${smallSlices}</p>
             </div>
-            <nav-link href="/mementer/${serializeHash(entryHash)}">Open</nav-link>
+            <nav-link href='/mementer/${serializeHash(entryHash)}'>Open</nav-link>
         </div>
     `
 }

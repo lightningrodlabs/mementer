@@ -1,31 +1,13 @@
 import { html } from 'lit'
-import { component, useState, useRef, useEffect } from 'haunted';
+import { component, useState, useEffect } from 'haunted';
 import 'lit-flatpickr'
-import { AdminWebsocket, AppWebsocket, InstalledCell } from '@holochain/client'
-import { HolochainClient, CellClient } from '@holochain-open-dev/cell-client'
-import { serializeHash } from '@holochain-open-dev/utils'
-import MementerService from './mementer-service'
 import './settings-modal'
 import './mementer-card'
 
-function HomePage(props: { shadowRoot: any }) {
-    const { shadowRoot } = props
-    const [loading, setLoading] = useState(true)
-    const [mementerService, setMementerService] = useState<any>(null)
+function HomePage(props: { shadowRoot: any; route: string; mementerService: any }) {
+    const { shadowRoot, route, mementerService } = props
     const [mementers, setMementers] = useState<any[]>([])
     const [newMementerModalOpen, setNewMementerModalOpen] = useState(false)
-
-    async function connectToHolochain() {
-        const adminWebsocket = await AdminWebsocket.connect(`ws://localhost:${process.env.ADMIN_PORT}`)
-        const appWebsocket = await AppWebsocket.connect(`ws://localhost:${process.env.HC_PORT}`)
-        const client = new HolochainClient(appWebsocket)
-        const appInfo = await appWebsocket.appInfo({ installed_app_id: 'mementer' })
-        const installedCells = appInfo.cell_data
-        const mementerCell = installedCells.find(c => c.role_id === 'mementer') as InstalledCell
-        const cellClient = new CellClient(client, mementerCell)
-        setMementerService(new MementerService(cellClient))
-        setLoading(false)
-    }
 
     function createMementer(data: any) {
         mementerService!
@@ -37,10 +19,8 @@ function HomePage(props: { shadowRoot: any }) {
             .catch((error: any) => console.log('createMementer error: ', error))
     }
 
-    useEffect(() => connectToHolochain(), [])
-
     useEffect(() => {
-        if (mementerService) {
+        if (mementerService && route === 'home') {
             mementerService
                 .getMementers()
                 .then((res: any) => setMementers(res))
@@ -56,13 +36,14 @@ function HomePage(props: { shadowRoot: any }) {
             //     })
             //     .catch((error) => console.log(error))
         }
-    }, [mementerService])
+    }, [mementerService, route])
 
     return html`
         <style>
             * {
                 -webkit-box-sizing: border-box;
                 -moz-box-sizing: border-box;
+                flex-shrink: 0;
             }
             p {
                 margin: 0;
@@ -102,7 +83,7 @@ function HomePage(props: { shadowRoot: any }) {
                 ? html`
                     <settings-modal
                         shadowRoot=${shadowRoot}
-                        .heading=${'Create a new Mementer'}
+                        .location=${'home'}
                         .close=${() => setNewMementerModalOpen(false)}
                         .save=${createMementer}
                     ></settings-modal>
@@ -116,4 +97,4 @@ function HomePage(props: { shadowRoot: any }) {
     `
 }
 
-customElements.define('home-page', component(HomePage))
+customElements.define('home-page', component(HomePage as any))

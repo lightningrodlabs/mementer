@@ -12,7 +12,7 @@ export function findDuration(start: string, end: string) {
     return new Date(end).getTime() - new Date(start).getTime()
 }
 
-export function totalYearsAndDays(milliseconds: number) {
+export function findYearsAndDays(milliseconds: number) {
     const day = 1000 * 60 * 60 * 24
     const year = day * 365
     const totalYears = Math.floor(milliseconds / year)
@@ -21,7 +21,7 @@ export function totalYearsAndDays(milliseconds: number) {
 }
 
 export function durationText(milliseconds: number): string {
-    const { totalYears, totalDays } = totalYearsAndDays(milliseconds)
+    const { totalYears, totalDays } = findYearsAndDays(milliseconds)
     const yearsText = totalYears > 0 ? `${totalYears} year${pluralise(totalYears)}` : ''
     const daysText = totalDays > 0 ? `${totalDays} day${pluralise(totalDays)}` : ''
     return `${yearsText}${totalYears > 0 && totalDays > 0 ? ', ' : ''}${daysText}`

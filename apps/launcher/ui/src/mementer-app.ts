@@ -66,8 +66,19 @@ export class MementerApp extends router(LitElement) {
     if (this.loading) return html`<div>Loading...</div>`
     return html`
       <router-outlet active-route=${this.route}>
-        <home-page route='home' shadowRoot=${this.shadowRoot} .mementerService=${this.mementerService} .route=${this.route}></home-page>
-        <the-mementer route='mementer' shadowRoot=${this.shadowRoot} .mementerService=${this.mementerService} .entryHash=${this.params.entryHash}></the-mementer>
+        <home-page
+          route='home'
+          shadowRoot=${this.shadowRoot}
+          .mementerService=${this.mementerService}
+          .route=${this.route}
+        ></home-page>
+        <the-mementer
+          route='mementer'
+          shadowRoot=${this.shadowRoot}
+          .mementerService=${this.mementerService}
+          .route=${this.route}
+          .entryHash=${this.params.entryHash}
+        ></the-mementer>
       </router-outlet>
     `
   }

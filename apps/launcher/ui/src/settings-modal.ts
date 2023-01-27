@@ -267,7 +267,12 @@ function SettingsModal(props: {
                 </div>
 
                 <div class='duration'>
-                    <duration-bar .startDate=${startDate} .endDate=${endDate} style='margin-bottom: 20px'></duration-bar>
+                    <duration-bar
+                        .startDate=${startDate}
+                        .endDate=${endDate}
+                        .size=${'small'}
+                        style='margin-bottom: 20px'
+                    ></duration-bar>
                     <div class='duration-picker'>
                         <div style='display: flex; flex-direction: column'>
                             <p style='margin-bottom: 15px'>${startDate || '∞'}</p>

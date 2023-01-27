@@ -54,7 +54,14 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
                 align-items: center;
                 width: 100%;
                 height: 100%;
-                background-color: #303030;
+                background-color: #d0d7e1;
+            }
+            .container {
+                display: flex;
+                flex-direction: column;
+                justify-content: ${mementers.length ? 'start' : 'center'};
+                align-items: center;
+                height: 100%;
             }
             .button {
                 all: unset;
@@ -63,10 +70,12 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
                 align-items: center;
                 justify-content: center;
                 background-color: #44b1f7;
-                height: 40px;
-                border-radius: 20px;
+                height: 60px;
+                border-radius: 30px;
                 padding: 0 20px;
                 color: white;
+                font-size: 20px;
+                flex-shrink: 0;
             }
             .mementer-list {
                 display: flex;
@@ -75,23 +84,25 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
             }
         </style>
         <div class='wrapper'>
-            <h1 style='color: white'>The Mementer: The Chronogram of Life</h1>
-            <button class='button' @click=${() => setNewMementerModalOpen(true)}>
-                Create Mementer
-            </button>
-            ${newMementerModalOpen
-                ? html`
-                    <settings-modal
-                        shadowRoot=${shadowRoot}
-                        .location=${'home'}
-                        .close=${() => setNewMementerModalOpen(false)}
-                        .save=${createMementer}
-                    ></settings-modal>
-                `
-                : ''
-            }
-            <div class='mementer-list'>
-                ${mementers.map((mementer) => html`<mementer-card .data=${mementer}></mementer-card>`)}
+            <h1>The Mementer: The Chronogram of Life</h1>
+            <div class='container'>
+                <button class='button' @click=${() => setNewMementerModalOpen(true)}>
+                    Create Mementer
+                </button>
+                ${newMementerModalOpen
+                    ? html`
+                        <settings-modal
+                            shadowRoot=${shadowRoot}
+                            .location=${'home'}
+                            .close=${() => setNewMementerModalOpen(false)}
+                            .save=${createMementer}
+                        ></settings-modal>
+                    `
+                    : ''
+                }
+                <div class='mementer-list'>
+                    ${mementers.map((mementer) => html`<mementer-card .data=${mementer}></mementer-card>`)}
+                </div>
             </div>
         </div>
     `

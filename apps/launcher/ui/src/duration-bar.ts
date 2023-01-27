@@ -5,8 +5,8 @@ import './settings-modal'
 
 const colors = { gold: '#f4c200', goldGrey: '#e1d7b0' }
 
-function DurationBar(props: { startDate: string; endDate: string }) {
-    const { startDate, endDate } = props
+function DurationBar(props: { startDate: string; endDate: string; size: 'large' | 'small' }) {
+    const { startDate, endDate, size } = props
 
     function percentage() {
         if (startDate && endDate) {
@@ -47,16 +47,16 @@ function DurationBar(props: { startDate: string; endDate: string }) {
                 position: relative;
             }
             .gold-svg {
-                width: 70px;
-                height: 70px;
+                width: ${size === 'small' ? '70px' : '140px'};
+                height: ${size === 'small' ? '70px' : '140px'};
                 filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);
             }
             .bar {
-                width: calc(100% - 105px);
+                width: calc(100% - ${size === 'small' ? '105px' : '200px'});
                 height: 25px;
                 background-color: ${colors.goldGrey};
                 position: absolute;
-                left: 42px;
+                left: ${size === 'small' ? '42px' : '80px'};
             }
             .elapsed-time {
                 height: 25px;

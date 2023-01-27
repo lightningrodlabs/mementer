@@ -55,6 +55,7 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
     const [selectedBeads, setSelectedBeads] = useState<any[]>([])
     const [newBeadText, setNewBeadText] = useState('')
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+    const [helpModalOpen, setHelpModalOpen] = useState(false)
     const beads = useRef<any[]>([])
     const focusState = useRef<focusStates>('default')
     const selectedSlices = useRef<any>({ large: 0, medium: 0, small: 0 })
@@ -325,22 +326,23 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
     }
 
     function findCircleDurations(start: string, end: string) {
+      const { largeSlices, mediumSlices, smallSlices } = settings
       const duration = findDuration(start, end)
       const largeCircleDuration = duration
-      const mediumCircleDuration = duration / settings.largeSlices
-      const smallCircleDuration = mediumCircleDuration / settings.mediumSlices
+      const mediumCircleDuration = duration / largeSlices
+      const smallCircleDuration = mediumCircleDuration / mediumSlices
       return {
         large: {
           circle: largeCircleDuration,
-          slice: largeCircleDuration / settings.largeSlices
+          slice: largeCircleDuration / largeSlices
         },
         medium: {
           circle: mediumCircleDuration,
-          slice: mediumCircleDuration / settings.mediumSlices
+          slice: mediumCircleDuration / mediumSlices
         },
         small: {
           circle: smallCircleDuration,
-          slice: smallCircleDuration / settings.smallSlices
+          slice: smallCircleDuration / smallSlices
         }
       }
     }
@@ -440,6 +442,8 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
           .attr('width', svgSize)
           .attr('height', svgSize)
           .attr('fill', 'white')
+          .attr('stroke', 'black')
+          .attr('stroke-width', 3)
           .style('cursor', 'pointer')
           .on('mousedown', () => updateFocusState('default'))
         // reset refs
@@ -474,7 +478,6 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
         .nav-button {
           all: unset;
           position: fixed;
-          top: 20px;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -490,8 +493,9 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
           height: 30px;
           opacity: 0.8;
         }
-        .home-button { left: 20px }
-        .settings-button { right: 20px }
+        .home-button { top: 20px; left: 20px }
+        .settings-button { top: 20px; right: 20px }
+        .help-button { bottom: 20px; right: 20px }
         .gold {
           filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(18deg) brightness(120%);
         }
@@ -525,7 +529,7 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
         }
         .new-bead-container {
           width: 340px;
-          height: 100%;
+          height: 700px;
           margin-right: 50px;
           display: flex;
           align-items: center;
@@ -548,6 +552,10 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
 
         <button class='nav-button settings-button' @click=${() => setSettingsModalOpen(true)}>
           <img src='https://upload.wikimedia.org/wikipedia/commons/9/92/Cog_font_awesome.svg' alt='settings' />
+        </button>
+
+        <button class='nav-button help-button' @click=${() => setHelpModalOpen(true)}>
+          <img src='https://upload.wikimedia.org/wikipedia/commons/f/f8/Question_mark_alternate.svg' alt='help' />
         </button>
 
         ${settingsModalOpen
@@ -583,7 +591,7 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
             </div>
           </div>
 
-          <div style='position: relative; margin-bottom: 20px'>
+          <div style='position: relative; height: 700px'>
             <img src='https://s3.eu-west-2.amazonaws.com/wiki.weco.io/mementer-infinity.svg' alt='mementer-infinty' class='mementer-infinity gold' />
             <div id='canvas'></div>
           </div>
@@ -608,7 +616,8 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
         <duration-bar
           .startDate=${settings.startDate}
           .endDate=${settings.endDate}
-          style='width: 770px; margin-bottom: 20px'
+          .size=${'large'}
+          style='width: 842px; margin-bottom: 20px; margin-top: -4px;'
         ></duration-bar>
         
       </div>

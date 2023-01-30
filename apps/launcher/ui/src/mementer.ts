@@ -474,6 +474,7 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
           background-color: #8bc8ff;
           border-radius: 5px;
           padding: 10px;
+          flex-shrink: 0;
         }
         .nav-button {
           all: unset;

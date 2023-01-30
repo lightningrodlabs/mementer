@@ -43,7 +43,6 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
             * {
                 -webkit-box-sizing: border-box;
                 -moz-box-sizing: border-box;
-                flex-shrink: 0;
             }
             p {
                 margin: 0;
@@ -53,7 +52,6 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
                 flex-direction: column;
                 align-items: center;
                 width: 100%;
-                height: 100%;
                 background-color: #d0d7e1;
             }
             .container {
@@ -61,7 +59,7 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
                 flex-direction: column;
                 justify-content: ${mementers.length ? 'start' : 'center'};
                 align-items: center;
-                height: 100%;
+                min-height: calc(100vh - 80px);
             }
             .button {
                 all: unset;

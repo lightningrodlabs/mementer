@@ -18,7 +18,18 @@ class NavLink extends navigator(LitElement) {
 
     render() {
         return html`
-            <a style='color: white; text-decoration: none' href='${this.href}' @click='${this.handleClick}'>
+            <style>
+                .wrapper {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100%;
+                    height: 100%;
+                    color: white;
+                    text-decoration: none;
+                }
+            </style>
+            <a class='wrapper' href='${this.href}' @click='${this.handleClick}'>
                 <slot></slot>
             </a>
         `

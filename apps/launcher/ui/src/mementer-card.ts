@@ -44,7 +44,7 @@ function MementerCard(props: { data: any }) {
                 background-color: #44b1f7;
                 height: 40px;
                 border-radius: 20px;
-                padding: 0 20px;
+                width: 84px;
                 color: white;
             }
         </style>

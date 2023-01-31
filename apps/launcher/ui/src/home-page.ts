@@ -2,12 +2,14 @@ import { html } from 'lit'
 import { component, useState, useEffect } from 'haunted';
 import 'lit-flatpickr'
 import './settings-modal'
+import './help-modal'
 import './mementer-card'
 
 function HomePage(props: { shadowRoot: any; route: string; mementerService: any }) {
     const { shadowRoot, route, mementerService } = props
     const [mementers, setMementers] = useState<any[]>([])
     const [newMementerModalOpen, setNewMementerModalOpen] = useState(false)
+    const [helpModalOpen, setHelpModalOpen] = useState(false)
 
     function createMementer(data: any) {
         mementerService!
@@ -80,6 +82,26 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
                 flex-direction: column;
                 margin-top: 30px;
             }
+            .help-button {
+                all: unset;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-shrink: 0;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background-color: #ccc;
+                cursor: pointer;
+            }
+            .help-button > img {
+                width: 30px;
+                height: 30px;
+                opacity: 0.8;
+              }
         </style>
         <div class='wrapper'>
             <h1>The Mementer: The Chronogram of Life</h1>
@@ -98,10 +120,14 @@ function HomePage(props: { shadowRoot: any; route: string; mementerService: any 
                     `
                     : ''
                 }
+                ${helpModalOpen ? html`<help-modal .close=${() => setHelpModalOpen(false)}></help-modal>` : ''}
                 <div class='mementer-list'>
                     ${mementers.map((mementer) => html`<mementer-card .data=${mementer}></mementer-card>`)}
                 </div>
             </div>
+            <button class='help-button' @click=${() => setHelpModalOpen(true)}>
+                <img src='https://upload.wikimedia.org/wikipedia/commons/f/f8/Question_mark_alternate.svg' alt='help' />
+            </button>
         </div>
     `
 }

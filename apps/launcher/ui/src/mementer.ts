@@ -7,6 +7,7 @@ import * as d3 from 'd3'
 import 'lit-flatpickr'
 import { findDuration, formatDate } from './helpers'
 import './settings-modal'
+import './help-modal'
 import './duration-bar'
 import './nav-link'
 
@@ -571,6 +572,8 @@ function Mementer(props: { shadowRoot: any; mementerService: any; route: string;
           `
           : ''
         }
+
+        ${helpModalOpen ? html`<help-modal .close=${() => setHelpModalOpen(false)}></help-modal>` : ''}
         
         <div style='display: flex; width: 1480px'>
           <div class='new-bead-container'>

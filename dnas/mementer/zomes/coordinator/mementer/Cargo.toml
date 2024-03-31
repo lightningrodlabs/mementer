@@ -1,0 +1,17 @@
+[package]
+name = "mementer"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "mementer"
+
+[dependencies]
+thiserror = "1.0.20"
+
+hdk = { workspace = true }
+
+serde = { workspace = true }
+
+mementer_integrity = { workspace = true } 

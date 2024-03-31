@@ -1,0 +1,28 @@
+---
+manifest_version: "1"
+name: mementer
+integrity:
+  network_seed: ~
+  properties: ~
+  origin_time: 1669136217555883
+  zomes:
+    - name: profiles_integrity
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/profiles_integrity.wasm"
+      dependencies: ~
+    - name: mementer_integrity
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/mementer_integrity.wasm"
+      dependencies: ~
+coordinator:
+  zomes:
+    - name: profiles
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/profiles.wasm"
+      dependencies:
+        - name: profiles_integrity
+    - name: mementer
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/mementer.wasm"
+      dependencies:
+        - name: mementer_integrity

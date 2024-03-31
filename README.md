@@ -1,49 +1,37 @@
 # Mementer
 
-A holochain hApp for creating and running chronograms
+A Chronogram
 
-## Install
+## Installation
 
-1. Install and run the [Holochain Launcher](https://github.com/holochain/launcher/releases)
-2. Click on *Install New App* and you should see Mementer available for install
+1. Install the holochain dev environment: https://developer.holochain.org/docs/install/
+2. Clone this repo: `git clone https://github.com/lightningrodlabs/mementer && cd ./mementer`
+3. Enter the nix shell: `nix develop`
+4. Install the dependencies with: `npm install`
 
-or, to install manually with a webhapp file:
+## UI
 
-2. Go to [https://github.com/lightningrodlabs/mementer/releases] and download the *webapp* file under assets
-3. In the Holochain Launcher click *Install New App* and *Select From Filesystem* and then choose the *webapp* file you downloaded.
-4. Enjoy!
+To test out the UI run :
 
-## Dev Environment Setup
-
-1. Install the holochain dev environment (only nix-shell is required): https://developer.holochain.org/docs/install/
-2. Enable Holochain cachix with:
-
-```bash
-nix-env -iA cachix -f https://cachix.org/api/v1/install
-cachix use holochain-ci
+``` bash
+npm run tool-dev
 ```
 
-3. Clone this repo and `cd` inside of it.
-4. Enter the nix shell by running this in the root folder of the repository: 
+## Package
 
-```bash
-nix-shell
-npm install
+To package the web happ:
+
+``` bash
+npm run package
 ```
 
-## Dev mode
+You'll have the `mementer.webhapp` in `workdir`, and it's component `mementer.happ` in `dna/workdir/happ`, and `ui.zip` in `ui/apps/mementer`.
 
-1. Run the app
-  ```bash
-  npm run start
-  ```
+## License
+[![License: CAL 1.0](https://img.shields.io/badge/License-CAL%201.0-blue.svg)](https://github.com/holochain/cryptographic-autonomy-license)
 
-2. The UI see the UI running!
+  Copyright (C) 2024, Lighning Rod Labs, based on [code](https://github.com/holochain/how) Copyright (C) Holochain Foundation
 
-
-## Releasing (manual)
-
-### For Launcher
-
-`npm run package`
-the `*.webhapp` file will be available in the `apps/launcher/workdir` folder.
+This program is free software: you can redistribute it and/or modify it under the terms of the license
+provided in the LICENSE file (CAL-1.0).  This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

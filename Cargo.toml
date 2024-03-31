@@ -1,11 +1,28 @@
-[workspace]
-resolver = "2"
-members = [
-  "libs/zomes/*",
-]
-
 [profile.dev]
 opt-level = "z"
 
 [profile.release]
 opt-level = "z"
+
+[workspace]
+members = ["dnas/*/zomes/coordinator/*", "dnas/*/zomes/integrity/*"]
+
+[workspace.dependencies]
+hdi = "0.4.0-beta-dev.32"
+hdk = "0.3.0-beta-dev.36"
+serde = "1"
+
+
+[workspace.dependencies.file_storage]
+[workspace.dependencies.mementer]
+path = "dnas/mementer/zomes/coordinator/mementer"
+
+[workspace.dependencies.mementer_integrity]
+path = "dnas/mementer/zomes/integrity/mementer"
+
+[workspace.dependencies.profiles]
+path = "dnas/mementer/zomes/coordinator/profiles"
+
+[workspace.dependencies.profiles_integrity]
+path = "dnas/mementer/zomes/integrity/profiles"
+

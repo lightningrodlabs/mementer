@@ -1,6 +1,14 @@
 # Mementer
 
-A Chronogram
+A Chronogram maker.
+
+How we perceive and manage time gets reified by how we embody and depict it.  This little hApp is an experiment in make it easy to 
+create cyclical representations of time with many different types of groupings.  Our calendars create a linear depiction and break
+time into minutes/hours/days/months & years.  Mementer lets you create wheels of arbitrary unit sizes at different scales that
+are fit for purpose.  Experiment with your team process cycles with tooling that matches the actual cycle.  Experiment with creating
+"streak" management tools for personal or group process improvement.  Experiment with journaling to enhance your experiences of flow.
+
+Play with time!
 
 ## Installation
 

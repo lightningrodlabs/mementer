@@ -11,7 +11,17 @@ A Chronogram
 
 ## UI
 
-To test out the UI run :
+To test out the UI as a stand alone holochain app run:
+
+
+``` bash
+npm run dev
+```
+
+and point your web-browser at `localhost:8888`
+
+To test the UI in the context of the Weave run:
+
 
 ``` bash
 npm run tool-dev
